@@ -13,6 +13,7 @@ var player: CharacterBody3D
 var interface: CanvasLayer
 var forest: Node3D
 var title_camera: Camera3D
+var ambience: AudioStreamPlayer
 var journey_started := false
 var discovered := false
 var is_paused := true
@@ -107,6 +108,9 @@ func _create_title_camera() -> void:
 
 
 func _create_ambience() -> void:
+	# The cloud's silent driver cannot consume a continuous playback stream.
+	if AudioServer.get_driver_name() == "Dummy":
+		return
 	var stream := load("res://assets/audio/forest_theme.wav") as AudioStreamWAV
 	if stream == null:
 		push_warning("A trilha da floresta não pôde ser carregada.")
@@ -114,12 +118,18 @@ func _create_ambience() -> void:
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	stream.loop_begin = 0
 	stream.loop_end = int(round(stream.get_length() * stream.mix_rate))
-	var ambience := AudioStreamPlayer.new()
+	ambience = AudioStreamPlayer.new()
 	ambience.name = "ForestAmbience"
 	ambience.stream = stream
 	ambience.volume_db = -14
 	add_child(ambience)
 	ambience.play()
+
+
+func _exit_tree() -> void:
+	# Release loop playback before the audio server shuts down.
+	if is_instance_valid(ambience):
+		ambience.stop()
 
 
 func _show_title_camera() -> void:
