@@ -1,0 +1,31 @@
+; Asterion — primeiro protótipo Android. Abra com Godot 4.6.3.
+config_version=5
+
+[application]
+config/name="Asterion — O despertar"
+run/main_scene="res://scenes/main.tscn"
+run/max_fps=60
+config/features=PackedStringArray("4.6", "GL Compatibility")
+config/icon="res://assets/icon.svg"
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=0
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+textures/vram_compression/import_etc2_astc=true
+environment/defaults/default_clear_color=Color(0.055, 0.045, 0.10, 1)
+
+[input_devices]
+pointing/emulate_mouse_from_touch=true
+
+[physics]
+common/physics_ticks_per_second=60
