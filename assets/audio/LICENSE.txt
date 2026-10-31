@@ -1,0 +1,15 @@
+Asterion — Forest Theme
+
+This original synthesized score and ambience was created specifically for the
+Asterion prototype by tools/generate_ambience.py. It contains no samples,
+recordings, instrument libraries or melodies taken from Zelda or other works.
+The deterministic Python generator uses only the standard library.
+
+To the extent possible under law, the authors dedicate the generated WAV audio
+and this generator to the public domain under CC0 1.0 Universal.
+
+https://creativecommons.org/publicdomain/zero/1.0/
+
+The 28-second stereo file is intended to loop from frame 0 through frame 617400
+at 22050 Hz. It was generated and checked for clipping and file integrity;
+the cloud environment has no physical audio device for a listening review.

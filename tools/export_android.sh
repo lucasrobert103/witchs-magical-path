@@ -14,11 +14,12 @@ if ! [ -x "$asterion_tools/android/build-tools/35.0.2/apksigner" ] || \
     "$asterion_repo/tools/setup_android.sh"
 fi
 mkdir -p "$asterion_repo/build"
+touch "$asterion_repo/build/.gdignore"
 asterion_apk="$asterion_repo/build/asterion-debug.apk"
 godot --headless --path "$asterion_repo" --export-debug Android "$asterion_apk" \
     2>&1 | tee "$asterion_repo/build/android-export.log"
 "$asterion_tools/android/build-tools/35.0.2/apksigner" verify --verbose "$asterion_apk" \
     | tee "$asterion_repo/build/android-signature.txt"
-python3 "$asterion_repo/tools/inspect_apk.py" "$asterion_apk" \
+python3 "$asterion_repo/tools/inspect_apk.py" "$asterion_apk" --expect-version 0.2.0 --require-game-assets \
     | tee "$asterion_repo/build/android-metadata.json"
 sha256sum "$asterion_apk" | tee "$asterion_repo/build/asterion-debug.apk.sha256"

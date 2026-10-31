@@ -1,26 +1,34 @@
 # Asterion — O despertar
 
-Primeiro protótipo de um RPG de bruxa em **3D, terceira pessoa, para Android**. Feito com **Godot 4.6.3 / GDScript**, renderizador Compatibility e geometria procedural, sem bibliotecas externas.
+![Primeira região de Asterion — captura real da versão 0.2](docs/images/gameplay.png)
 
-## Experiência implementada
+Uma aventura de bruxa em **3D, terceira pessoa, para Android**, feita com **Godot 4.6.3 / GDScript**. A direção atual combina personagem de estudo anime, iluminação em faixas e **exploração por regiões, enigma ambiental e progressão guiada**, conforme a referência de estrutura de Ocarina of Time escolhida pelo autor. Os modelos, cenário, interface e áudio são próprios; não há assets de Zelda.
 
-- Menu e abertura com trechos do prólogo fornecido pelo autor, que pode ser pulada.
-- Clareira explorável com árvores, vegetação, pontos de luz e uma planta luminosa.
-- Movimento relativo à câmera, câmera orbital e controles de toque simultâneos.
-- Uma interação mágica por proximidade, resposta visual, conclusão e reinício.
-- Pausa manual e automática ao perder foco.
-- Registro local da descoberta. **Não é um sistema de salvamento/continuação**; cada nova jornada começa no ponto inicial.
+## Primeira região jogável — versão 0.2.0
 
-O cenário, a planta e os efeitos são propostas de encenação para testar a jogabilidade, não novos fatos da mitologia. O modelo da personagem e sua roupa são provisórios; o projeto ainda não contém um modelo anime de produção. A aparência busca representar pele morena, olhos âmbar e cabelos escuros cacheados até a cintura. A referência aprovada da roupa precisa ser fornecida antes da arte definitiva.
+Asterion inicia numa trilha elevada que leva à clareira. Uma inscrição descreve a relação entre três sinais naturais. O jogador precisa observar, explorar e experimentar a magia para abrir a passagem até a área seguinte.
+
+- Personagem construída com superfícies modeladas, rosto anime, olhos âmbar, cachos castanho-escuros longos, roupa articulada e animação de caminhada, corrida, salto e magia.
+- Terreno com relevo e colisão correspondente, trilhas, vegetação ao vento, lago, céu, árvores e passagem de pedra.
+- Enigma de sequência **Água → Raiz → Luz**, com respostas distintas, reinício em caso de erro e abertura física da passagem.
+- Exploração posterior até a árvore além da passagem; resolver o enigma não conclui automaticamente a região.
+- Câmera com colisão, foco contextual, corrida com energia e salto com tolerância nas bordas.
+- Controles simultâneos para toque, pausa e leitura; botão Voltar do Android e perda de foco tratados.
+- Menu sobre o cenário real, prólogo opcional, indicador dos sinais e interface em português.
+- Ambiente musical original e respostas sonoras das interações.
+
+**Limites desta versão:** trata-se de uma primeira região experimental. Não há combate, inventário, NPCs, múltiplas missões ou outras regiões completas. O registro local guarda a conclusão, mas ainda não existe continuar/salvamento completo. O desempenho e a ergonomia precisam de testes num aparelho Android físico.
+
+A aparência e a roupa ainda são um estudo visual, não a arte final aprovada. A referência da roupa não foi disponibilizada. Os elementos do enigma e a disposição dos espaços são propostas de gameplay; não acrescentam explicações definitivas à cosmologia. Veja [continuidade](docs/CONTINUIDADE.md).
 
 ## Abrir e jogar
 
-Abra `project.godot` no Godot **4.6.3** e pressione **F6** na cena `scenes/main.tscn`, ou **F5** para executar o projeto.
+Abra `project.godot` no Godot **4.6.3** e execute com **F5**.
 
 ```sh
 cd /workspace/witchs-magical-path
 godot --editor --path .
-# Ou iniciar diretamente:
+# Ou iniciar diretamente num ambiente com tela:
 godot --path .
 ```
 
@@ -34,38 +42,51 @@ export XDG_CACHE_HOME=/workspace/.cache
 
 | Ação | Android | Computador |
 | --- | --- | --- |
-| Caminhar | Controle virtual à esquerda | WASD ou setas |
+| Caminhar | Controle à esquerda | WASD / setas |
 | Olhar | Arrastar à direita | Arrastar o mouse |
-| Magia | Botão Magia | E ou Espaço |
-| Pausar | Botão no canto superior direito | Esc |
+| Magia / ler inscrição | Botão Magia / Ler | E |
+| Saltar | Saltar | Espaço |
+| Correr | Segurar Correr + caminhar | Segurar Shift |
+| Focar sinal / centralizar câmera | Olhar | Q ou F |
+| Pausar | Botão superior / Voltar | Esc |
 
-Siga os pontos de luz e use magia perto da planta luminosa. A clareira delimita o espaço deste protótipo; não há combate ou outras regiões nesta versão.
+A inscrição está na trilha de entrada. O botão **Enigma** permite reler a pista. Os três sinais da clareira precisam responder na ordem sugerida. Depois de abrir a passagem, siga em frente para alcançar a área seguinte.
 
 ## Android
 
-Veja [como preparar, exportar e instalar](docs/ANDROID.md). O APK de desenvolvimento fica em `build/asterion-debug.apk` e usa assinatura de teste. Não é uma versão de loja. Nunca inclua chaves de produção no repositório.
+[Preparação, exportação e instalação](docs/ANDROID.md).
+
+```sh
+./tools/setup_android.sh
+./tools/export_android.sh
+```
+
+O APK de desenvolvimento fica em `build/asterion-debug.apk`, assinado para testes, compatível com Android 7.0+ ARM64 e OpenGL ES 3.0. Não é uma publicação de loja.
 
 ## Validação
 
 ```sh
 godot --headless --editor --path . --import --quit
 godot --headless --path . --script res://tests/smoke_test.gd
+godot --headless --path . --script res://tests/traversal_smoke.gd
 godot --headless --path . --script res://tests/ui_smoke.gd
 ```
 
-O teste integrado executa a cena e a física: movimento, chão, pausa, alcance da magia, descoberta, registro local e reinício. O teste da interface cobre os controles de toque. Essas verificações não substituem testar desempenho e ergonomia num celular real.
+O teste integrado executa a cena, o terreno, a inscrição, a sequência correta/incorreta, o bloqueio físico da passagem e sua travessia, a conclusão e o reinício. O teste de movimento cobre câmera, salto, energia e pausa. O teste de interface despacha toques nativos simultâneos.
+
+Capturas renderizadas ficam em `build/` e não são versionadas. Validar o pacote e renderizar no computador não substitui executar num celular real.
 
 ## Organização
 
 ```text
-scenes/main.tscn       Cena inicial
-scripts/main.gd        Fluxo de jogo e interação
-scripts/player.gd      Personagem, movimento e câmera
-scripts/forest.gd      Cenário procedural e resposta mágica
-scripts/game_ui.gd     Menu, prólogo, HUD e controles
-tests/                Testes executáveis no Godot
-tools/                Preparação e exportação Android
-docs/                 Instruções e continuidade narrativa
+scenes/main.tscn              Cena inicial
+scripts/main.gd               Região, enigma e transições
+scripts/player.gd             Movimento, salto, corrida e câmera
+scripts/character_visual.gd   Malhas e animação da personagem
+scripts/forest.gd             Terreno, cenário, sinais e passagem
+scripts/game_ui.gd            Menu e controles
+shaders/                     Materiais do personagem, terreno, água e vegetação
+assets/                      Ícone, fonte licenciada e áudio original
+tests/                       Testes executáveis no Godot
+tools/                       Preparação e exportação Android
 ```
-
-Próximas etapas: testar o APK em dispositivos Android, aprovar a direção visual e a roupa de Asterion e então expandir a exploração e os sistemas mágicos em etapas.

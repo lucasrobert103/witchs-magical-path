@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Inspect APK metadata without the proprietary Android SDK or third-party Python packages."""
+import argparse
 import json
+import re
 import struct
-import sys
 import zipfile
 from pathlib import Path
 
@@ -53,7 +54,24 @@ def manifest_elements(data):
         cursor += size
 
 
-def inspect(path):
+def verify_resource(apk, resource):
+    """Check both direct resources and Godot's imported/remapped resource targets."""
+    entry = "assets/" + resource
+    names = set(apk.namelist())
+    for suffix in (".import", ".remap"):
+        metadata = entry + suffix
+        if metadata not in names:
+            continue
+        matches = re.findall(r'^path(?:\.[^=]+)?="res://([^"]+)"', apk.read(metadata).decode("utf-8"), re.MULTILINE)
+        if matches and all("assets/" + match in names for match in matches):
+            return "assets/" + matches[0]
+        raise ValueError(f"Missing exported import target: {resource}")
+    if entry in names:
+        return entry
+    raise ValueError(f"Missing exported resource or import target: {resource}")
+
+
+def inspect(path, expected_version=None, require_game_assets=False):
     with zipfile.ZipFile(path) as apk:
         broken = apk.testzip()
         if broken:
@@ -70,10 +88,33 @@ def inspect(path):
         assert any(activity.get("screenOrientation") == 0 for activity in activities), activities
         assert "android.permission.INTERNET" not in permissions, permissions
         assert "assets/project.binary" in apk.namelist(), "Missing exported project"
+        if expected_version is not None:
+            assert root.get("versionName") == expected_version, root
+        exported_assets = {}
+        if require_game_assets:
+            for resource in [
+                "scenes/main.tscn",
+                "scripts/main.gd",
+                "scripts/player.gd",
+                "scripts/character_visual.gd",
+                "scripts/forest.gd",
+                "scripts/game_ui.gd",
+                "shaders/character_toon.gdshader",
+                "shaders/world_toon.gdshader",
+                "shaders/water.gdshader",
+                "shaders/grass.gdshader",
+                "assets/ui_fonts/DejaVuSerif.ttf",
+                "assets/audio/forest_theme.wav",
+            ]:
+                exported_assets[resource] = verify_resource(apk, resource)
+            assert not any(name.startswith(("assets/tools/", "assets/tests/", "assets/docs/", "assets/build/")) for name in apk.namelist()), "Development-only files included"
+            assert "assets/assets/ui_fonts/LICENSE.txt" in apk.namelist(), "Missing redistributed font license"
+            assert "assets/assets/audio/LICENSE.txt" in apk.namelist(), "Missing audio license"
         return {
             "apk": str(Path(path).resolve()),
             "package": root["package"],
             "version": root.get("versionName"),
+            "version_code": root.get("versionCode"),
             "minimum_android_api": sdk.get("minSdkVersion"),
             "target_android_api": sdk.get("targetSdkVersion"),
             "architectures": libraries,
@@ -81,8 +122,14 @@ def inspect(path):
             "debuggable": application.get("debuggable", False),
             "permissions": permissions,
             "size_bytes": Path(path).stat().st_size,
+            "verified_game_assets": exported_assets,
         }
 
 
 if __name__ == "__main__":
-    print(json.dumps(inspect(sys.argv[1]), indent=2, ensure_ascii=False))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("apk")
+    parser.add_argument("--expect-version")
+    parser.add_argument("--require-game-assets", action="store_true")
+    args = parser.parse_args()
+    print(json.dumps(inspect(args.apk, args.expect_version, args.require_game_assets), indent=2, ensure_ascii=False))

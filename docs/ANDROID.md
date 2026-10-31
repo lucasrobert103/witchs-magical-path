@@ -1,8 +1,8 @@
-# Android — primeiro protótipo
+# Android — protótipo de exploração guiada
 
-O preset `Android` gera um APK de desenvolvimento para **Android 7.0 ou superior (API 24)**, em aparelhos **ARM64**, com orientação horizontal. O renderizador Compatibility usa OpenGL ES 3.0. O primeiro pacote é `org.asterion.prototype`, versão `0.1.0`.
+O preset `Android` gera um APK de desenvolvimento para **Android 7.0 ou superior (API 24)**, em aparelhos **ARM64**, com orientação horizontal. O renderizador Compatibility usa OpenGL ES 3.0. O pacote é `org.asterion.prototype`, versão `0.2.0` (código 2).
 
-O APK usa assinatura de depuração, não solicita permissões e funciona sem conexão. Não é uma publicação na Play Store. A versão inicial ainda precisa ser avaliada num aparelho real: desempenho, aquecimento, controles e recortes de tela variam entre dispositivos.
+O APK usa assinatura de depuração, não solicita permissões e funciona sem conexão. Não é uma publicação na Play Store. Esta versão ainda precisa ser avaliada num aparelho real: desempenho, aquecimento, controles e recortes de tela variam entre dispositivos.
 
 ## Gerar no ambiente na nuvem
 
@@ -13,6 +13,8 @@ cd /workspace/witchs-magical-path
 ./tools/setup_android.sh
 ./tools/export_android.sh
 ```
+
+A versão 0.2.0 reúne o novo visual anime, terreno 3D e exploração guiada por interações com água, raiz e luz. Ela substitui o primeiro protótipo; seus elementos de gameplay não estabelecem novos fatos sobre a cosmologia.
 
 O resultado fica em `build/asterion-debug.apk`. A exportação também grava o log, metadados do manifesto, resultado da verificação de assinatura e SHA-256 em `build/`.
 
@@ -45,11 +47,11 @@ O ambiente na nuvem não foi conectado a um aparelho. Seu `adb` serve à verific
 ## Validar o pacote
 
 ```bash
-python3 tools/inspect_apk.py build/asterion-debug.apk
+python3 tools/inspect_apk.py build/asterion-debug.apk --expect-version 0.2.0 --require-game-assets
 /workspace/.tools/android/build-tools/35.0.2/apksigner verify --verbose build/asterion-debug.apk
 ```
 
-Esses comandos verificam a integridade ZIP, o manifesto, a arquitetura ARM64, a orientação horizontal, a ausência de permissão de internet e a assinatura do pacote. Não substituem execução no Android.
+Esses comandos verificam a integridade ZIP, o manifesto, a arquitetura ARM64, a orientação horizontal, a ausência de permissão de internet e a assinatura do pacote. A exportação também exige a presença dos scripts, shaders, fonte, tema sonoro e seus avisos de licença usados pelo novo protótipo. Não substituem execução no Android.
 
 ## Publicação futura
 
