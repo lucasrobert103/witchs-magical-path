@@ -75,9 +75,12 @@ Asterion vem diretamente da ficha enviada (`tools/art/ai/reference_sheet.jpg`):
 2. ampliada 4× com **Real‑ESRGAN x4plus_anime** (rede neural de super‑resolução para anime,
    executada em numpy — `tools/art/ai/esrgan_numpy.py`);
 3. o fundo é removido com **ISNet‑anime** (segmentação por IA) e refinado/desfeito o halo;
-4. as animações (respirar, andar, correr, magia, pulo, levantar, dano) são feitas deformando
-   regiões da própria pintura — pernas, cabelo, saia, capa e braço — em
-   `tools/art/ai/build_witch_sprites.py`. Assim ela permanece idêntica à arte de referência.
+4. as animações usam um **esqueleto 2D**: cada vista é dividida em peças recortadas da própria
+   pintura — braço, antebraço com mão, coxa, canela com bota e corpo — que giram nas
+   articulações (ombro, cotovelo, quadril, joelho). Os espaços que um membro deixa ao se mover
+   são preenchidos com as cores ao redor, e por cima entram o balanço do quadril, a rotação do
+   tronco, a inclinação da cabeça e o atraso do cabelo e da saia
+   (`tools/art/ai/build_witch_sprites.py`). Assim ela continua idêntica à arte de referência.
 
 No jogo ela é um sprite com *billboard* em um mundo 3D, com shader próprio (sem névoa, leve
 contorno de luz) e 8 direções (frente, perfil espelhado e costas).
