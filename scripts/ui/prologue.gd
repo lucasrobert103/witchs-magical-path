@@ -69,7 +69,7 @@ var _finished := false
 var _flash := 0.0
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	for n in ["goddess", "goddess_reach", "god", "god_reach"]:
 		_tex[n] = load("res://assets/sprites/prologue/%s.png" % n)
@@ -84,16 +84,15 @@ func _ready() -> void:
 	_text = UIKit.label("", UIKit.serif, 36, Color("efe4cb"), HORIZONTAL_ALIGNMENT_CENTER)
 	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_text.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_text.custom_minimum_size = Vector2(1060, 0)
+	_text.custom_minimum_size = Vector2(1060, 230)
+	_text.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	_text.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_text.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_text.position = Vector2(-530, -70)
 	_text.add_theme_constant_override("line_spacing", 4)
 	add_child(_text)
 	_title = VBoxContainer.new()
-	_title.set_anchors_preset(Control.PRESET_CENTER)
-	_title.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_title.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_title.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_title.alignment = BoxContainer.ALIGNMENT_CENTER
 	_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_title)
@@ -105,15 +104,12 @@ func _ready() -> void:
 	_skip = UIKit.button("Pular  ›", false, 150)
 	_skip.custom_minimum_size = Vector2(150, 48)
 	_skip.add_theme_font_size_override("font_size", 18)
-	_skip.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_skip.position = Vector2(-180, 26)
+	UIKit.pin(_skip, 1.0, 0.0, -28.0, 26.0)
 	_skip.pressed.connect(finish)
 	add_child(_skip)
 	_hint = UIKit.label("toque para continuar", UIKit.sans, 16, Color(0.86, 0.76, 0.54, 0.6), HORIZONTAL_ALIGNMENT_CENTER)
-	_hint.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_hint.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_hint.position = Vector2(-100, -34)
 	_hint.custom_minimum_size = Vector2(200, 0)
+	UIKit.pin(_hint, 0.5, 1.0, 0.0, -24.0)
 	add_child(_hint)
 	_set_card(0)
 
@@ -129,8 +125,7 @@ func _set_card(i: int) -> void:
 	var c: Dictionary = CARDS[i]
 	_text.text = c["text"]
 	_text.visible_ratio = 0.0
-	_text.reset_size()
-	_text.position.y = -70 - _text.size.y
+	UIKit.pin(_text, 0.5, 1.0, 0.0, -60.0)
 	_title.visible = c["scene"] == "title"
 	_title.modulate.a = 0.0
 	if c["scene"] in ["touch", "creation", "god_born"]:
@@ -145,7 +140,7 @@ func _duration(i: int) -> float:
 	return 5.0 if txt == "" else 3.5 + txt.length() / 15.0
 
 func _gui_input(event: InputEvent) -> void:
-	var tap := (event is InputEventScreenTouch and event.pressed) or (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
+	var tap: bool = (event is InputEventScreenTouch and event.pressed) or (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
 	if tap:
 		advance()
 		accept_event()
@@ -218,7 +213,7 @@ func _draw() -> void:
 	if na > 0.0:
 		for i in 5:
 			var p := c + Vector2(sin(_t * 0.05 + i * 1.7) * s.x * 0.3, cos(_t * 0.04 + i * 2.1) * s.y * 0.2)
-			var col := [Color(0.35, 0.2, 0.55), Color(0.15, 0.35, 0.5), Color(0.5, 0.25, 0.4), Color(0.2, 0.3, 0.6), Color(0.3, 0.45, 0.5)][i]
+			var col: Color = [Color(0.35, 0.2, 0.55), Color(0.15, 0.35, 0.5), Color(0.5, 0.25, 0.4), Color(0.2, 0.3, 0.6), Color(0.3, 0.45, 0.5)][i]
 			col.a = 0.16 * na
 			_glow(p, s.y * 0.65, col)
 	# Stars.
@@ -356,7 +351,7 @@ func _draw() -> void:
 			draw_arc(sun, rad, 0, TAU, 96, Color(1, 1, 1, 0.12 * pl), 1.0, true)
 			var a := _t * (0.5 - i * 0.09) + i * 1.9
 			var p := sun + Vector2(cos(a), sin(a) * 0.45) * rad
-			var col := [Color(0.6, 0.85, 1.0), Color(0.9, 0.6, 0.4), Color(0.6, 0.9, 0.6), Color(0.85, 0.8, 1.0)][i]
+			var col: Color = [Color(0.6, 0.85, 1.0), Color(0.9, 0.6, 0.4), Color(0.6, 0.9, 0.6), Color(0.85, 0.8, 1.0)][i]
 			draw_circle(p, 8.0 + i * 3.0, Color(col, pl))
 			_glow(p, 26.0 + i * 6.0, Color(col, 0.4 * pl))
 		# Moon phases cycle.
@@ -394,21 +389,19 @@ func _draw() -> void:
 		var cc := c + Vector2(0, -s.y * 0.08)
 		var r := s.y * 0.26
 		var rot := _t * 0.25
+		var cols := [Color(0.55, 0.85, 1.0), Color(1.0, 0.7, 0.35)]
+		var axis := Vector2(cos(rot), sin(rot))
 		for k in 2:
-			var col := Color(0.55, 0.85, 1.0) if k == 0 else Color(1.0, 0.7, 0.35)
 			var pts := PackedVector2Array()
-			for i in 61:
-				var a := rot + k * PI + i / 60.0 * PI
+			for i in 49:
+				var a := rot + k * PI + i / 48.0 * PI
 				pts.append(cc + Vector2(cos(a), sin(a)) * r)
-			for i in 31:
-				var a := rot + k * PI + PI - i / 30.0 * PI
-				pts.append(cc + Vector2(cos(rot + k * PI + PI), sin(rot + k * PI + PI)) * r * 0.5 + Vector2(cos(a), sin(a)) * r * 0.5)
-			for i in 31:
-				var a := rot + k * PI + PI + i / 30.0 * PI
-				pts.append(cc + Vector2(cos(rot + k * PI), sin(rot + k * PI)) * r * 0.5 + Vector2(cos(a), sin(a)) * r * 0.5)
-			draw_colored_polygon(pts, Color(col, 0.55 * yi))
-			var dot := cc + Vector2(cos(rot + k * PI), sin(rot + k * PI)) * r * 0.5
-			_glow(dot, 30.0, Color(col, yi))
+			draw_colored_polygon(pts, Color(cols[k], 0.55 * yi))
+		# Classic construction: two half-size discs swap the halves, with small dots.
+		draw_circle(cc + axis * r * 0.5, r * 0.5, Color(cols[0], 0.55 * yi))
+		draw_circle(cc - axis * r * 0.5, r * 0.5, Color(cols[1], 0.55 * yi))
+		_glow(cc + axis * r * 0.5, 30.0, Color(cols[1], yi))
+		_glow(cc - axis * r * 0.5, 30.0, Color(cols[0], yi))
 		_glow(cc, r * 1.9, Color(1, 0.95, 0.85, 0.2 * yi))
 	var ho := _a("horizon")
 	if ho > 0.0:

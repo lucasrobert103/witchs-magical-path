@@ -103,3 +103,17 @@ class Ornament extends Control:
 
 static func icon_tex(name: String) -> Texture2D:
 	return load("res://assets/ui/icon_%s.png" % name)
+
+## Pins a control so that its anchor point (ax, ay in 0..1 of the parent) sits at
+## offset (px, py), aligned the same way (0 = left/top, 0.5 = centre, 1 = right/bottom).
+static func pin(c: Control, ax: float, ay: float, px: float, py: float) -> void:
+	c.reset_size()
+	var s := c.get_combined_minimum_size().max(c.size)
+	c.anchor_left = ax
+	c.anchor_right = ax
+	c.anchor_top = ay
+	c.anchor_bottom = ay
+	c.offset_left = px - s.x * ax
+	c.offset_right = c.offset_left + s.x
+	c.offset_top = py - s.y * ay
+	c.offset_bottom = c.offset_top + s.y

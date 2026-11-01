@@ -330,6 +330,7 @@ func _build_landmarks() -> void:
 	_veil_mat = ShaderMaterial.new()
 	_veil_mat.shader = load("res://shaders/veil.gdshader")
 	_veil_mat.set_shader_parameter("noise_tex", dapple)
+	_veil_mat.set_shader_parameter("strength", 1.0)
 	_veil.material_override = _veil_mat
 	_place(_veil, Vector2(0, -66.95))
 	_gate_glow = Props.glow(Color(1.0, 0.9, 0.7), 9.0, 0.0)

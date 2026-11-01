@@ -73,7 +73,7 @@
     const roots = [];
     for (let i = 0; i < 5; i++) {
       const s = i < 2 ? -1 : (i < 4 ? 1 : (r() < 0.5 ? -1 : 1));
-      const spread = (0.15 + r() * 0.28) * W * s;
+      const spread = (0.07 + r() * 0.11) * W * s;
       roots.push(curve([base[0] + s * tw * 0.2, base[1] - tw * 0.9], [base[0] + spread * 0.5, base[1] - 10 - r() * 20], [base[0] + spread, base[1] + 4 - r() * 10], 12));
     }
     // Branches from trunk top to clusters.
@@ -88,7 +88,7 @@
     const shapes = [];
     for (const b of branches) shapes.push(limbPoly(b.pts, b.w, b.w * 0.25));
     shapes.push(limbPoly(trunkPts, tw * 1.25, tw * 0.75));
-    for (const rt of roots) shapes.push(limbPoly(rt, tw * 0.55, tw * 0.08));
+    for (const rt of roots) shapes.push(limbPoly(rt, tw * 0.45, tw * 0.06));
     // Fill wood with bark texture.
     x.save();
     x.beginPath();

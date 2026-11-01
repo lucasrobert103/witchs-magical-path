@@ -1,6 +1,6 @@
 shader_type spatial;
 // Shimmering magical seal inside the sanctuary arch.
-render_mode blend_add, unshaded, cull_disabled, depth_draw_never;
+render_mode blend_add, unshaded, cull_disabled, depth_draw_never, fog_disabled;
 uniform sampler2D noise_tex : filter_linear_mipmap, repeat_enable;
 uniform vec4 moon : source_color = vec4(0.45, 0.8, 1.0, 1.0);
 uniform vec4 flame : source_color = vec4(1.0, 0.7, 0.3, 1.0);

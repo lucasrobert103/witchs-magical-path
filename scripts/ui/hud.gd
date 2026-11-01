@@ -53,7 +53,7 @@ class Bars extends Control:
 				draw_texture_rect(essence_icon, Rect2(352, 52, 26, 26), false, mana_color)
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_bars = Bars.new()
 	_bars.position = Vector2(26, 18)
@@ -80,6 +80,7 @@ func _ready() -> void:
 	_objective_panel.position.y = 22
 	_objective_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_objective_panel)
+	_objective_panel.visible = false
 	var ob := HBoxContainer.new()
 	ob.add_theme_constant_override("separation", 10)
 	_objective_panel.add_child(ob)
@@ -157,8 +158,7 @@ func _process(_delta: float) -> void:
 func set_objective(text: String) -> void:
 	_objective.text = text
 	_objective_panel.visible = text != ""
-	_objective_panel.reset_size()
-	_objective_panel.position.x = -_objective_panel.size.x * 0.5
+	UIKit.pin(_objective_panel, 0.5, 0.0, 0.0, 22.0)
 	if text != "":
 		_objective_panel.modulate = Color(1.4, 1.3, 1.0, 1.0)
 		create_tween().tween_property(_objective_panel, "modulate", Color.WHITE, 1.0)
@@ -167,8 +167,7 @@ func show_area(title: String, sub: String) -> void:
 	_area_title.text = title
 	_area_sub.text = sub
 	_area_sub.visible = sub != ""
-	_area.reset_size()
-	_area.position.x = -_area.size.x * 0.5
+	UIKit.pin(_area, 0.5, 0.5, 0.0, -150.0)
 	if _area_tween:
 		_area_tween.kill()
 	_area_tween = create_tween()
@@ -190,8 +189,7 @@ func _next_toast() -> void:
 	_toast_label.text = t[0]
 	var tex := UIKit.icon_tex(t[1]) if ResourceLoader.exists("res://assets/ui/icon_%s.png" % t[1]) else UIKit.icon_tex("spark")
 	_toast_icon.texture = tex
-	_toast.reset_size()
-	_toast.position.x = -_toast.size.x * 0.5
+	UIKit.pin(_toast, 0.5, 1.0, 0.0, -230.0)
 	var tw := create_tween()
 	tw.tween_property(_toast, "modulate:a", 1.0, 0.35)
 	tw.tween_interval(2.8)
@@ -203,5 +201,4 @@ func _on_prompt(text: String, _icon: String) -> void:
 		_prompt.text = ""
 	else:
 		_prompt.text = ("[F]  " + text) if text != "" else ""
-	_prompt.reset_size()
-	_prompt.position.x = -_prompt.size.x * 0.5
+	UIKit.pin(_prompt, 0.5, 0.5, 0.0, 130.0)

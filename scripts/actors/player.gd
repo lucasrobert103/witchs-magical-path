@@ -188,7 +188,10 @@ func tick(delta: float) -> void:
 	vel.x = hv.x
 	vel.z = hv.z
 	if wish.length() > 0.08 and _cast_timer <= 0.0:
-		facing = facing.slerp(wish.normalized(), clampf(delta * 12.0, 0.0, 1.0)).normalized()
+		var a0 := atan2(facing.x, facing.z)
+		var a1 := atan2(wish.x, wish.z)
+		var a := lerp_angle(a0, a1, clampf(delta * 12.0, 0.0, 1.0))
+		facing = Vector3(sin(a), 0.0, cos(a))
 
 	# Jumping with coyote time and input buffering.
 	if on_ground:
@@ -210,7 +213,7 @@ func tick(delta: float) -> void:
 	if world:
 		next = world.terrain.resolve(next, RADIUS, p.y)
 		next = world.terrain.clamp_walkable(next, RADIUS)
-	var ground := world.terrain.height(next.x, next.y) if world else 0.0
+	var ground: float = world.terrain.height(next.x, next.y) if world else 0.0
 	var ny := p.y + vel.y * delta
 	if on_ground:
 		# Stick to gentle slopes.

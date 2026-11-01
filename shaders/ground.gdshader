@@ -2,10 +2,10 @@ shader_type spatial;
 // Painted forest floor: grass, moss, leaf litter and flagstone path blended by a
 // layout mask, with slowly drifting dappled sunlight.
 render_mode unshaded;
-uniform sampler2D grass_tex : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D moss_tex : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D dirt_tex : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D path_tex : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D grass_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D moss_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D dirt_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D path_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D mask_tex : filter_linear, repeat_disable;
 uniform sampler2D dapple_tex : filter_linear_mipmap, repeat_enable;
 uniform vec2 world_min = vec2(-50.0, -90.0);

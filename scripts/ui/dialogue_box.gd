@@ -17,7 +17,7 @@ var active := false
 var _cooldown := 0.0
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
 	_panel = PanelContainer.new()
@@ -102,6 +102,7 @@ func _show_current() -> void:
 	_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER if narration else HORIZONTAL_ALIGNMENT_LEFT
 	_text.visible_characters = 0
 	_typing = 0.0
+	UIKit.pin(_panel, 0.5, 1.0, 0.0, -26.0)
 	_cooldown = 0.15
 
 func _process(delta: float) -> void:

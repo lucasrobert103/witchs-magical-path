@@ -16,7 +16,7 @@ class TitleScreen extends Control:
 	var _col: VBoxContainer
 	var _credits: Label
 	func _ready() -> void:
-		set_anchors_preset(Control.PRESET_FULL_RECT)
+		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		# Left-side gradient so the title reads over the forest.
 		var shade := TextureRect.new()
@@ -56,9 +56,8 @@ class TitleScreen extends Control:
 		st.pressed.connect(func(): open_settings.emit())
 		_col.add_child(st)
 		_credits = UIKit.label("Capítulo I — O Despertar  ·  v1.0", UIKit.sans, 15, Color(0.85, 0.85, 0.8, 0.6))
-		_credits.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-		_credits.position = Vector2(96, -48)
 		add_child(_credits)
+		UIKit.pin(_credits, 0.0, 1.0, 96.0, -36.0)
 		refresh()
 	func refresh() -> void:
 		_continue.visible = Game.has_save()
@@ -74,11 +73,11 @@ class SettingsPanel extends Control:
 	var _quality: Button
 	var _touch: Button
 	func _ready() -> void:
-		set_anchors_preset(Control.PRESET_FULL_RECT)
+		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		var dim := ColorRect.new()
 		dim.color = Color(0, 0, 0, 0.55)
-		dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+		dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		add_child(dim)
 		var panel := PanelContainer.new()
 		panel.add_theme_stylebox_override("panel", UIKit.panel_style(Color(0.04, 0.07, 0.05, 0.95), UIKit.GOLD_DIM, 18, 2))
@@ -111,8 +110,7 @@ class SettingsPanel extends Control:
 		back.pressed.connect(func(): closed.emit())
 		v.add_child(back)
 		_update_labels()
-		panel.reset_size()
-		panel.position = -panel.size * 0.5
+		UIKit.pin(panel, 0.5, 0.5, 0.0, 0.0)
 	func _row(v: VBoxContainer, text: String, key: String, lo := 0.0, hi := 1.0) -> void:
 		var h := HBoxContainer.new()
 		h.add_theme_constant_override("separation", 20)
@@ -138,11 +136,11 @@ class PauseMenu extends Control:
 	signal to_title
 	var _first: Button
 	func _ready() -> void:
-		set_anchors_preset(Control.PRESET_FULL_RECT)
+		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		var dim := ColorRect.new()
 		dim.color = Color(0.01, 0.02, 0.02, 0.6)
-		dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+		dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		add_child(dim)
 		var v := VBoxContainer.new()
 		v.add_theme_constant_override("separation", 14)
@@ -164,8 +162,7 @@ class PauseMenu extends Control:
 		v.add_child(t)
 		var help := UIKit.label("Joystick: andar (empurre até o fim para correr)  ·  Arraste à direita: câmera\n✦ Magia  ·  Pular  ·  Mão: interagir  ·  Lua/Chama: trocar essência", UIKit.sans, 16, Color(0.9, 0.88, 0.8, 0.7), HORIZONTAL_ALIGNMENT_CENTER)
 		v.add_child(help)
-		v.reset_size()
-		v.position = -v.size * 0.5
+		UIKit.pin(v, 0.5, 0.5, 0.0, 0.0)
 	func focus_first() -> void:
 		_first.grab_focus()
 
@@ -174,11 +171,11 @@ class EndingScreen extends Control:
 	var _stats: Label
 	var _box: VBoxContainer
 	func _ready() -> void:
-		set_anchors_preset(Control.PRESET_FULL_RECT)
+		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		var bg := ColorRect.new()
 		bg.color = Color(0.01, 0.015, 0.02, 0.92)
-		bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+		bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		add_child(bg)
 		_box = VBoxContainer.new()
 		_box.add_theme_constant_override("separation", 16)
@@ -202,7 +199,6 @@ class EndingScreen extends Control:
 		_box.add_child(b)
 	func show_stats(stats: Dictionary) -> void:
 		_stats.text = "Centelhas encontradas: %d/%d     ·     Tempo de jornada: %s" % [int(stats.get("sparks", 0)), Game.TOTAL_SPARKS, Game.format_time(float(stats.get("time", 0.0)))]
-		_box.reset_size()
-		_box.position = -_box.size * 0.5
+		UIKit.pin(_box, 0.5, 0.5, 0.0, 0.0)
 		modulate.a = 0.0
 		create_tween().tween_property(self, "modulate:a", 1.0, 2.0)

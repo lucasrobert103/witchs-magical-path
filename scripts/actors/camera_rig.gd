@@ -5,8 +5,8 @@ extends Node3D
 var cam: Camera3D
 var yaw := 0.0
 var pitch := deg_to_rad(17.0)
-var distance := 6.4
-var target_height := 1.35
+var distance := 5.1
+var target_height := 1.25
 var _focus := Vector3.ZERO
 var _manual_timer := 0.0
 var _shake := 0.0
