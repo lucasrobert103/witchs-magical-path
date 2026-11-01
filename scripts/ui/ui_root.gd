@@ -13,6 +13,7 @@ var ending: Menus.EndingScreen
 var prologue: Prologue
 var memory: Memory
 var map_view: Menus.MapView
+var splash: StudioSplash
 var fade: ColorRect
 
 func _ready() -> void:
@@ -62,6 +63,9 @@ func _ready() -> void:
 	map_view = Menus.MapView.new()
 	add_child(map_view)
 	map_view.visible = false
+	splash = StudioSplash.new()
+	add_child(splash)
+	splash.visible = false
 	fade = ColorRect.new()
 	fade.color = Color(0.0, 0.0, 0.0, 1.0)
 	fade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

@@ -23,11 +23,33 @@ func _ready() -> void:
 	ui.prologue.done.connect(_on_prologue_done)
 	ui.dialogue.finished.connect(_on_dialogue_finished)
 	ui.touch.action.connect(_on_touch_action)
+	ui.splash.done.connect(_on_splash_done)
 	if Game.has_save() and Game.load_game():
 		pass
 	else:
 		Game.new_state()
 	_make_world()
+	if Game.splash_shown:
+		_show_title()
+	else:
+		_show_splash()
+
+## "Desenvolvido por RetroNexa" — the same studio opening as GuardiPatas.
+func _show_splash() -> void:
+	Game.splash_shown = true
+	state = "splash"
+	world.mode = "title"
+	ui.set_gameplay_visible(false)
+	ui.title.visible = false
+	ui.splash.start()
+	ui.fade_to(0.0, 0.3)
+
+func _on_splash_done() -> void:
+	if state != "splash":
+		return
+	state = "loading"
+	await ui.fade_to(1.0, 0.45).finished
+	ui.splash.visible = false
 	_show_title()
 
 func _make_world() -> void:
@@ -254,6 +276,8 @@ func _notification(what: int) -> void:
 					_close_settings()
 				else:
 					get_tree().quit()
+			"splash":
+				ui.splash.finish()
 			"prologue":
 				ui.prologue.finish()
 			"memory":

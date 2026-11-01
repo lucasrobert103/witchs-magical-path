@@ -46,6 +46,7 @@ func cast_at(target: Node3D) -> void:
 func _initialize() -> void:
 	await process_frame
 	game = root.get_node("Game")
+	root.get_node("Game").splash_shown = true
 	game.delete_save()
 	main = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)

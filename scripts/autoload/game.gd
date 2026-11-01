@@ -20,6 +20,9 @@ var settings := {
 ## Current playthrough. Flags are plain strings so saves stay readable.
 var state: Dictionary = {}
 
+## The RetroNexa opening plays once per launch.
+var splash_shown := false
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_setup_input()

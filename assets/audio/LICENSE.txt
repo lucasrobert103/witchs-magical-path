@@ -6,3 +6,6 @@ tools/audio/generate_audio.py, sem amostras, gravações ou melodias de terceiro
 
 Dedicados ao domínio público sob CC0 1.0 Universal:
 https://creativecommons.org/publicdomain/zero/1.0/
+
+Os efeitos pop.wav, bonk.wav e retro_jingle.wav (abertura RetroNexa) vêm de GuardiPatas,
+do mesmo autor, gerados por tools/gen_audio.py daquele projeto.

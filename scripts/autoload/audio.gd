@@ -80,7 +80,7 @@ func play_ambience(path: String, volume_db := -10.0) -> void:
 	_ambience.volume_db = volume_db
 	_ambience.play()
 
-func sfx(name: String, volume_db := 0.0, pitch_jitter := 0.06) -> void:
+func sfx(name: String, volume_db := 0.0, pitch_jitter := 0.06, pitch := 1.0) -> void:
 	var path := SFX_DIR + name + ".wav"
 	if not ResourceLoader.exists(path):
 		return
@@ -92,10 +92,11 @@ func sfx(name: String, volume_db := 0.0, pitch_jitter := 0.06) -> void:
 		if not v.playing:
 			v.stream = stream
 			v.volume_db = volume_db
-			v.pitch_scale = 1.0 + randf_range(-pitch_jitter, pitch_jitter)
+			v.pitch_scale = pitch * (1.0 + randf_range(-pitch_jitter, pitch_jitter))
 			v.play()
 			return
 	# All busy: steal the first voice.
 	_voices[0].stream = stream
 	_voices[0].volume_db = volume_db
+	_voices[0].pitch_scale = pitch
 	_voices[0].play()

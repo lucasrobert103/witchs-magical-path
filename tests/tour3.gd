@@ -14,6 +14,7 @@ func wait(t: float) -> void:
 
 func _initialize() -> void:
 	await process_frame
+	root.get_node("Game").splash_shown = true
 	root.get_node("Game").delete_save()
 	main = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
