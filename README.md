@@ -1,92 +1,127 @@
-# Asterion — O despertar
+# Asterion — O Caminho da Bruxa
 
-![Primeira região de Asterion — captura real da versão 0.2](docs/images/gameplay.png)
+![Ruínas Esquecidas — captura real do jogo](docs/images/13_cast.jpg)
 
-Uma aventura de bruxa em **3D, terceira pessoa, para Android**, feita com **Godot 4.6.3 / GDScript**. A direção atual combina personagem de estudo anime, iluminação em faixas e **exploração por regiões, enigma ambiental e progressão guiada**, conforme a referência de estrutura de Ocarina of Time escolhida pelo autor. Os modelos, cenário, interface e áudio são próprios; não há assets de Zelda.
+Aventura de bruxa para **Android** (Godot 4.6.3 / GDScript) em estilo "HD‑2D" pintado:
+um mundo 3D enevoado de floresta outonal, com árvores, ruínas e efeitos pintados à mão por
+código, e a protagonista **Asterion** desenhada exatamente como na ficha de personagem.
 
-## Primeira região jogável — versão 0.2.0
-
-Asterion inicia numa trilha elevada que leva à clareira. Uma inscrição descreve a relação entre três sinais naturais. O jogador precisa observar, explorar e experimentar a magia para abrir a passagem até a área seguinte.
-
-- Personagem construída com superfícies modeladas, rosto anime, olhos âmbar, cachos castanho-escuros longos, roupa articulada e animação de caminhada, corrida, salto e magia.
-- Terreno com relevo e colisão correspondente, trilhas, vegetação ao vento, lago, céu, árvores e passagem de pedra.
-- Enigma de sequência **Água → Raiz → Luz**, com respostas distintas, reinício em caso de erro e abertura física da passagem.
-- Exploração posterior até a árvore além da passagem; resolver o enigma não conclui automaticamente a região.
-- Câmera com colisão, foco contextual, corrida com energia e salto com tolerância nas bordas.
-- Controles simultâneos para toque, pausa e leitura; botão Voltar do Android e perda de foco tratados.
-- Menu sobre o cenário real, prólogo opcional, indicador dos sinais e interface em português.
-- Ambiente musical original e respostas sonoras das interações.
-
-**Limites desta versão:** trata-se de uma primeira região experimental. Não há combate, inventário, NPCs, múltiplas missões ou outras regiões completas. O registro local guarda a conclusão, mas ainda não existe continuar/salvamento completo. O desempenho e a ergonomia precisam de testes num aparelho Android físico.
-
-A aparência e a roupa ainda são um estudo visual, não a arte final aprovada. A referência da roupa não foi disponibilizada. Os elementos do enigma e a disposição dos espaços são propostas de gameplay; não acrescentam explicações definitivas à cosmologia. Veja [continuidade](docs/CONTINUIDADE.md).
-
-## Abrir e jogar
-
-Abra `project.godot` no Godot **4.6.3** e execute com **F5**.
-
-```sh
-cd /workspace/witchs-magical-path
-godot --editor --path .
-# Ou iniciar diretamente num ambiente com tela:
-godot --path .
-```
-
-Em ambientes restritos, defina diretórios graváveis antes dos comandos:
-
-```sh
-export XDG_DATA_HOME=/workspace/.local/share
-export XDG_CONFIG_HOME=/workspace/.config
-export XDG_CACHE_HOME=/workspace/.cache
-```
-
-| Ação | Android | Computador |
+| Título | Prólogo | Diálogo |
 | --- | --- | --- |
-| Caminhar | Controle à esquerda | WASD / setas |
-| Olhar | Arrastar à direita | Arrastar o mouse |
-| Magia / ler inscrição | Botão Magia / Ler | E |
-| Saltar | Saltar | Espaço |
-| Correr | Segurar Correr + caminhar | Segurar Shift |
-| Focar sinal / centralizar câmera | Olhar | Q ou F |
-| Pausar | Botão superior / Voltar | Esc |
+| ![](docs/images/01_title.jpg) | ![](docs/images/03_prologue_08.jpg) | ![](docs/images/05_wake_dialogue.jpg) |
+| ![](docs/images/08_pool.jpg) | ![](docs/images/03_prologue_14.jpg) | ![](docs/images/11_brazier.jpg) |
 
-A inscrição está na trilha de entrada. O botão **Enigma** permite reler a pista. Os três sinais da clareira precisam responder na ordem sugerida. Depois de abrir a passagem, siga em frente para alcançar a área seguinte.
+## O que há no jogo (v1.0)
 
-## Android
+- **Prólogo — O nascimento dos primeiros Deuses**: o texto completo do autor, cartão a cartão,
+  sobre cenas animadas (o Infinito, a Deusa, o reflexo, o nascimento do Deus, a criação dos
+  oceanos, ventos, montanhas e estrelas, a magia nas raízes e nas chamas, as primeiras bruxas).
+  Tocar avança; "Pular" disponível.
+- **Capítulo I — O Despertar** (~15–25 min): Asterion desperta na Clareira e segue o *Lume*
+  (luz-guia) por cinco áreas:
+  1. **Clareira do Despertar** — pedra com inscrição, primeira centelha escondida.
+  2. **Fonte da Lua** — ao tocar a água, Asterion descobre a magia (essência da Lua).
+  3. **Trilha das Lanternas** — acender três lanternas de pedra com magia recolhe as raízes.
+  4. **Ruínas Esquecidas** — primeiro encontro com as **Sombras**; centelha atrás de um tronco (pule!).
+  5. **Chama Eterna** — ganha a essência da Chama e a troca **Lua ↔ Chama**.
+  6. **Santuário dos Primeiros** — emboscada de sombras e o enigma final: os altares da Lua e da
+     Chama precisam despertar **juntos** (“Nenhum existia acima do outro”), abrindo o portal.
+- **5 centelhas** escondidas (cada uma aumenta a mana e revela um verso do prólogo).
+- Vida e mana com o emblema de folha, objetivo no topo, títulos de área, diálogos com retrato,
+  checkpoints com salvamento automático, morte e renascimento, tela de fim de capítulo com estatísticas.
+- **Controles de toque multitoque**: joystick flutuante (empurre até o fim para correr),
+  arrastar à direita para girar a câmera, botões Magia ✦, Pular, Interagir (aparece perto de objetos),
+  Essência e Pausa. Botão Voltar do Android pausa. Também funciona com teclado e controle.
+- Trilha sonora, ambiente e efeitos originais sintetizados (CC0).
+- Configurações: volume de música/efeitos, sensibilidade da câmera, gráficos *Bonito/Leve*.
 
-[Preparação, exportação e instalação](docs/ANDROID.md).
+## Controles no computador
 
-```sh
+| Ação | Tecla |
+| --- | --- |
+| Andar / correr | WASD ou setas / segurar Shift |
+| Câmera | botão direito do mouse + arrastar, Q / C |
+| Magia | E ou J |
+| Pular | Espaço |
+| Interagir / ler | F ou Enter |
+| Trocar essência | Tab ou R |
+| Pausa | Esc |
+
+## A personagem
+
+Asterion vem diretamente da ficha enviada (`tools/art/ai/reference_sheet.jpg`):
+
+1. Cada vista (frente, perfil, costas, busto ¾) é recortada da ficha;
+2. ampliada 4× com **Real‑ESRGAN x4plus_anime** (rede neural de super‑resolução para anime,
+   executada em numpy — `tools/art/ai/esrgan_numpy.py`);
+3. o fundo é removido com **ISNet‑anime** (segmentação por IA) e refinado/desfeito o halo;
+4. as animações (respirar, andar, correr, magia, pulo, levantar, dano) são feitas deformando
+   regiões da própria pintura — pernas, cabelo, saia, capa e braço — em
+   `tools/art/ai/build_witch_sprites.py`. Assim ela permanece idêntica à arte de referência.
+
+No jogo ela é um sprite com *billboard* em um mundo 3D, com shader próprio (sem névoa, leve
+contorno de luz) e 8 direções (frente, perfil espelhado e costas).
+
+## Abrir, testar e exportar
+
+```bash
+godot --editor --path .
+```
+
+```bash
+godot --headless --path . --script res://tests/compile_all.gd
+```
+
+```bash
+godot --headless --path . --script res://tests/story_smoke.gd
+```
+
+O `story_smoke` joga o Capítulo I inteiro pelos sistemas reais (andar, pular o tronco, magia,
+lanternas, sombras, centelha, essências, altares, portal, salvamento). `tests/tour.gd` gera as
+capturas (precisa de tela/xvfb).
+
+### Android
+
+```bash
 ./tools/setup_android.sh
+```
+
+```bash
 ./tools/export_android.sh
 ```
 
-O APK de desenvolvimento fica em `build/asterion-debug.apk`, assinado para testes, compatível com Android 7.0+ ARM64 e OpenGL ES 3.0. Não é uma publicação de loja.
+Gera `build/asterion.apk` (assinatura de depuração, Android 7.0+, ARM64, OpenGL ES 3.0,
+sem permissões). Detalhes em [docs/ANDROID.md](docs/ANDROID.md).
 
-## Validação
+## Regenerar a arte e o áudio
 
-```sh
-godot --headless --editor --path . --import --quit
-godot --headless --path . --script res://tests/smoke_test.gd
-godot --headless --path . --script res://tests/traversal_smoke.gd
-godot --headless --path . --script res://tests/ui_smoke.gd
+```bash
+cd tools/art && npm i --no-save playwright && node build_env.cjs
 ```
 
-O teste integrado executa a cena, o terreno, a inscrição, a sequência correta/incorreta, o bloqueio físico da passagem e sua travessia, a conclusão e o reinício. O teste de movimento cobre câmera, salto, energia e pausa. O teste de interface despacha toques nativos simultâneos.
+```bash
+python3 tools/art/ai/build_witch_sprites.py
+```
 
-Capturas renderizadas ficam em `build/` e não são versionadas. Validar o pacote e renderizar no computador não substitui executar num celular real.
+```bash
+python3 tools/audio/generate_audio.py
+```
+
+Após gerar texturas novas, rode `python3 tools/set_texture_imports.py` e reimporte no Godot
+(texturas 3D usam mipmaps e compressão de GPU ETC2/S3TC).
 
 ## Organização
 
 ```text
-scenes/main.tscn              Cena inicial
-scripts/main.gd               Região, enigma e transições
-scripts/player.gd             Movimento, salto, corrida e câmera
-scripts/character_visual.gd   Malhas e animação da personagem
-scripts/forest.gd             Terreno, cenário, sinais e passagem
-scripts/game_ui.gd            Menu e controles
-shaders/                     Materiais do personagem, terreno, água e vegetação
-assets/                      Ícone, fonte licenciada e áudio original
-tests/                       Testes executáveis no Godot
-tools/                       Preparação e exportação Android
+scenes/main.tscn                Cena inicial
+scripts/main.gd                 Fluxo: título → prólogo → capítulo → fim; entrada e pausa
+scripts/autoload/               Game (estado, salvamento, configurações) e Audio
+scripts/world/                  Mundo, terreno, cenário, enigmas e interações
+scripts/actors/                 Asterion, câmera, magia, Sombras e o Lume
+scripts/ui/                     HUD, toque, diálogos, menus e prólogo
+shaders/                        Sprites com vento, chão pintado, água, véu, raios de luz, personagem
+assets/                         Sprites, texturas, fontes (OFL) e áudio (CC0)
+tools/art/                      Geradores de arte (Chromium/canvas) e pipeline de IA da personagem
+tools/audio/                    Síntese da trilha e dos efeitos
+tests/                          Testes automatizados
 ```

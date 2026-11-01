@@ -62,6 +62,7 @@ var sprite: Sprite3D
 var shadow: MeshInstance3D
 var hand_glow: MeshInstance3D
 var _textures := {}
+var _mat: ShaderMaterial
 
 func _ready() -> void:
 	sprite = Sprite3D.new()
@@ -72,7 +73,9 @@ func _ready() -> void:
 	sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	sprite.pixel_size = 1.0 / PIXELS_PER_METER
 	sprite.offset = Vector2(0, FRAME_H * 0.5 - FOOT)
-	sprite.modulate = Color(0.96, 0.95, 0.92)
+	_mat = ShaderMaterial.new()
+	_mat.shader = load("res://shaders/character.gdshader")
+	sprite.material_override = _mat
 	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(sprite)
 	for key in SHEETS.keys():
@@ -109,6 +112,7 @@ func _set_anim(name: String) -> void:
 	anim = name
 	anim_time = 0.0
 	sprite.texture = _textures[name]
+	_mat.set_shader_parameter("tex", _textures[name])
 	sprite.hframes = SHEETS[name]["frames"]
 	sprite.vframes = ROWS
 
@@ -165,7 +169,8 @@ func tick(delta: float) -> void:
 	_mana_delay = maxf(0.0, _mana_delay - delta)
 	if magic_unlocked and _mana_delay <= 0.0:
 		mana = minf(max_mana, mana + 7.0 * delta)
-	sprite.visible = _invuln <= 0.0 or int(_invuln * 14.0) % 2 == 0 or dead
+	sprite.visible = _invuln <= 0.6 or int(_invuln * 14.0) % 2 == 0 or dead
+	_mat.set_shader_parameter("flash", clampf(_hurt_timer / 0.35, 0.0, 1.0))
 
 	var can_move := control_enabled and not dead and anim != "kneel" and _hurt_timer <= 0.0
 	# Desired horizontal velocity from input relative to the camera.

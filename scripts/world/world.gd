@@ -64,6 +64,14 @@ var _quality := 1
 
 func _ready() -> void:
 	_quality = int(Game.settings.get("quality", 1))
+	# Phones have very dense screens: render 3D below native and let the UI stay sharp.
+	var scale_3d := 1.0
+	if OS.has_feature("mobile"):
+		scale_3d = 0.8 if _quality > 0 else 0.6
+	elif _quality == 0:
+		scale_3d = 0.75
+	get_viewport().scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+	get_viewport().scaling_3d_scale = scale_3d
 	dapple = NoiseTexture2D.new()
 	dapple.width = 256
 	dapple.height = 256

@@ -83,9 +83,9 @@ def inspect(path, expected_version=None, require_game_assets=False):
         activities = [attrs for name, attrs in elements if name == "activity"]
         permissions = [attrs["name"] for name, attrs in elements if name == "uses-permission"]
         libraries = sorted({name.split("/")[1] for name in apk.namelist() if name.startswith("lib/") and name.endswith(".so")})
-        assert root["package"] == "org.asterion.prototype", root
+        assert root["package"] == "com.asterion.caminhodabruxa", root
         assert libraries == ["arm64-v8a"], libraries
-        assert any(activity.get("screenOrientation") == 0 for activity in activities), activities
+        assert any(activity.get("screenOrientation") in (0, 6, 8, 11) for activity in activities), activities
         assert "android.permission.INTERNET" not in permissions, permissions
         assert "assets/project.binary" in apk.namelist(), "Missing exported project"
         if expected_version is not None:
@@ -95,20 +95,18 @@ def inspect(path, expected_version=None, require_game_assets=False):
             for resource in [
                 "scenes/main.tscn",
                 "scripts/main.gd",
-                "scripts/player.gd",
-                "scripts/character_visual.gd",
-                "scripts/forest.gd",
-                "scripts/game_ui.gd",
-                "shaders/character_toon.gdshader",
-                "shaders/world_toon.gdshader",
-                "shaders/water.gdshader",
-                "shaders/grass.gdshader",
-                "assets/ui_fonts/DejaVuSerif.ttf",
-                "assets/audio/forest_theme.wav",
+                "scripts/world/world.gd",
+                "scripts/actors/player.gd",
+                "scripts/ui/prologue.gd",
+                "shaders/character.gdshader",
+                "shaders/ground.gdshader",
+                "assets/sprites/witch/walk.png",
+                "assets/fonts/Cinzel-SemiBold.woff",
+                "assets/audio/music_forest.ogg",
             ]:
                 exported_assets[resource] = verify_resource(apk, resource)
             assert not any(name.startswith(("assets/tools/", "assets/tests/", "assets/docs/", "assets/build/")) for name in apk.namelist()), "Development-only files included"
-            assert "assets/assets/ui_fonts/LICENSE.txt" in apk.namelist(), "Missing redistributed font license"
+            assert "assets/assets/fonts/OFL.txt" in apk.namelist(), "Missing font license"
             assert "assets/assets/audio/LICENSE.txt" in apk.namelist(), "Missing audio license"
         return {
             "apk": str(Path(path).resolve()),
