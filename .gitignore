@@ -6,3 +6,5 @@ build/
 *.jks
 export_credentials.cfg
 *.log
+__pycache__/
+node_modules/

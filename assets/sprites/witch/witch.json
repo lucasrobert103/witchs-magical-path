@@ -1,0 +1,20 @@
+{
+  "frame_width": 256,
+  "frame_height": 384,
+  "foot_offset": 18,
+  "rows": [
+    "front",
+    "side",
+    "back"
+  ],
+  "char_height_px": 348,
+  "animations": {
+    "idle": 8,
+    "walk": 8,
+    "run": 8,
+    "cast": 6,
+    "jump": 4,
+    "kneel": 6,
+    "hurt": 1
+  }
+}
