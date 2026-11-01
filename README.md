@@ -115,7 +115,7 @@ capturas (precisam de tela/xvfb).
 ./tools/export_android.sh
 ```
 
-Gera `build/asterion.apk` (cópia pronta em `dist/asterion.apk`) (assinatura de depuração, Android 7.0+, ARM64, OpenGL ES 3.0,
+Gera `build/asterion.apk` (assinatura de depuração, Android 7.0+, ARM64, OpenGL ES 3.0,
 sem permissões). Detalhes em [docs/ANDROID.md](docs/ANDROID.md).
 
 ## Regenerar a arte e o áudio
