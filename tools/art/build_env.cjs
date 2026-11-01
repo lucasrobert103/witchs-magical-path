@@ -71,6 +71,7 @@ const JOBS = {
   'ui/icon_flame.png': `Extra.icon('flame')`,
   'ui/icon_spark.png': `Extra.icon('spark')`,
   'ui/icon_read.png': `Extra.icon('read')`,
+  'ui/icon_run.png': `Extra.icon('run')`,
   'ui/ring.png': `Extra.ring({})`,
   'ui/ring_ticks.png': `Extra.ring({ticks:true})`,
   'textures/bark_brown.png': `Valley.barkTile({seed:5, base:'#5b4535', dark:'#2a1e17', light:'#8c7462'})`,

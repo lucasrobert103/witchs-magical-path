@@ -20,7 +20,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.abspath(os.path.join(HERE, '..', '..', '..', 'assets', 'sprites', 'witch'))
 FW, FH, FOOT = 256, 384, 18
 CHAR_H = 348            # pixels from sole to top of hair in a frame
-ANIMS = {'idle': 12, 'walk': 12, 'run': 10, 'cast': 6, 'jump': 4, 'kneel': 6, 'hurt': 1}
+ANIMS = {'idle': 12, 'walk': 12, 'run': 10, 'sigh': 12, 'wind': 12, 'shift': 12, 'cast': 6, 'jump': 4, 'kneel': 6, 'hurt': 1}
 
 
 def ss(a, b, x):
@@ -31,8 +31,37 @@ def ss(a, b, x):
 PAD = 160
 
 
+def box_blur(a, k):
+    out = a.copy()
+    for axis in (0, 1):
+        acc = np.zeros_like(out)
+        for s in range(-k, k + 1):
+            acc += np.roll(out, s, axis=axis)
+        out = acc / (2 * k + 1)
+    return out
+
+
+def despeckle(im):
+    """Removes the light specks the background cut left inside the dark hair."""
+    a = im[..., 3]
+    lum = im[..., :3].mean(axis=2)
+    dark = (lum < 0.4) & (a > 0.5)
+    nb_dark = box_blur(dark.astype(np.float32), 4)
+    speck = (lum > 0.5) & (nb_dark > 0.32) & (a > 0.1)
+    if speck.any():
+        w = dark.astype(np.float32)[..., None]
+        col = box_blur(im[..., :3] * w, 4) / np.maximum(box_blur(w, 4), 1e-3)
+        im[..., :3] = np.where(speck[..., None], col, im[..., :3])
+        im[..., 3] = np.where(speck, np.maximum(a, 0.95), a)
+    # Isolated bright, nearly transparent fringe pixels at the silhouette.
+    fringe = (lum > 0.7) & (a < 0.6)
+    im[..., 3] = np.where(fringe, a * 0.3, im[..., 3])
+    return im
+
+
 def load(name):
     im = np.asarray(Image.open(os.path.join(HERE, 'source', name + '.png')).convert('RGBA'), dtype=np.float32) / 255.0
+    im = despeckle(im)
     im = np.pad(im, ((0, 0), (PAD, PAD), (0, 0)))
     im[..., :3] *= im[..., 3:4]  # premultiply for clean interpolation
     return im
@@ -117,6 +146,15 @@ class View:
             ax0, ax1, ay0, ay1 = c['arm']
             m = ss(ax0 - 20, ax0 + 10, X) * (1 - ss(ax1 - 10, ax1 + 20, X)) * ss(ay0, ay0 + 40, Y) * (1 - ss(ay1, ay1 + 30, Y))
             dx += -p['arm'] * ss(ay0, ay1, Y) * m
+        # Weight shift: the body travels over the planted leg, feet stay put.
+        sway = p.get('sway', 0.0)
+        if sway:
+            dx += -sway * (1 - ss(c['knee'] - 60, foot - 20, Y))
+        # Arms swing (front/back): hands rise and fall opposite to the legs.
+        if 'arms_fb' in c and p.get('arms'):
+            for i, (ax0, ax1, ay0, ay1) in enumerate(c['arms_fb']):
+                m = ss(ax0 - 15, ax0 + 10, X) * (1 - ss(ax1 - 10, ax1 + 15, X)) * ss(ay0, ay0 + 40, Y) * (1 - ss(ay1, ay1 + 30, Y))
+                dy += -p['arms'][i] * ss(ay0, ay1, Y) * m
         # Leg lifts (front/back views): lower the sampling so the foot rises.
         if 'legs' in c:
             for i, lx in enumerate(c['legs']):
@@ -172,9 +210,11 @@ class View:
 CFG = {
     # Coordinates in the 4x source images.
     'front': {'top': 23, 'shoulder': 228, 'waist': 368, 'hip': 428, 'hem': 728, 'knee': 760, 'foot': 965,
-              'hair_bottom': 330, 'legs': (168 + PAD, 272 + PAD), 'leg_w': 40},
+              'hair_bottom': 330, 'legs': (168 + PAD, 272 + PAD), 'leg_w': 40,
+              'arms_fb': [(20 + PAD, 100 + PAD, 300, 540), (342 + PAD, 424 + PAD, 300, 540)]},
     'back': {'top': 23, 'shoulder': 228, 'waist': 380, 'hip': 440, 'hem': 748, 'knee': 770, 'foot': 965,
-             'hair_bottom': 400, 'legs': (180 + PAD, 280 + PAD), 'leg_w': 40},
+             'hair_bottom': 400, 'legs': (180 + PAD, 280 + PAD), 'leg_w': 40,
+             'arms_fb': [(28 + PAD, 108 + PAD, 300, 540), (350 + PAD, 432 + PAD, 300, 540)]},
     'side': {'top': 24, 'shoulder': 260, 'waist': 380, 'hip': 430, 'hem': 790, 'knee': 760, 'foot': 965,
              'hair_bottom': 410, 'arm': (78 + PAD, 156 + PAD, 290, 540), 'leg_box': (40 + PAD, 182 + PAD, 744), 'pivot': (116 + PAD, 600)},
 }
@@ -206,9 +246,41 @@ def pose(view, anim, f, n):
             lift_b = (60 if run else 26) * max(0.0, -co)
             p['swing'] = [(sw, 0.78, lift_b), (-sw, 1.0, lift_a)]
         else:
-            L = (80 if run else 46)
+            L = (78 if run else 42)
             p['lift'] = (L * max(0.0, s), L * max(0.0, -s))
             p['hair_x'] = 0.0
+            # Hips carry the weight over the planted foot; arms answer the legs.
+            p['sway'] = (5.0 if run else 7.0) * s
+            arm = (16.0 if run else 10.0) * s
+            p['arms'] = (-arm, arm) if not back else (arm, -arm)
+        return p
+    if anim == 'sigh':
+        k = math.sin(math.pi * f / (n - 1)) ** 1.5
+        settle = max(0.0, (f - 7) / 4.0)
+        p = {'breathe': 3.5 * k, 'bob': 7 * k - 2.5 * settle * (1 - k), 'hair_y': -6 * k + 3 * settle, 'hair_wave': 2.0,
+             'phase': ph, 'skirt_x': 1.5 * math.sin(ph), 'arms': (-4 * k, -4 * k)}
+        if side:
+            p['swing'] = [(0, 0.82, 0), (0, 1.0, 0)]
+            p['arm'] = -4 * k
+        return p
+    if anim == 'wind':
+        g = math.sin(math.pi * f / (n - 1))
+        flutter = math.sin(ph * 3.0) * g
+        p = {'hair_x': 44 * g + 7 * flutter, 'hair_wave': 8 * g, 'phase': ph * 2, 'hair_y': -8 * g,
+             'skirt_x': 18 * g + 5 * flutter, 'lean': 3 * g, 'breathe': g}
+        if side:
+            p['swing'] = [(-2 * g, 0.82, 0), (2 * g, 1.0, 0)]
+        return p
+    if anim == 'shift':
+        sw = math.sin(ph)
+        p = {'bob': 2.5 * abs(sw), 'hair_wave': 3.0, 'phase': ph - 0.7, 'skirt_x': 3 * math.sin(ph - 0.8), 'breathe': 0.5 * math.cos(ph)}
+        if side:
+            p['lean'] = 7 * sw
+            p['swing'] = [(-3 * sw, 0.82, 0), (3 * sw, 1.0, 0)]
+            p['arm'] = 5 * sw
+        else:
+            p['sway'] = 11 * sw
+            p['lift'] = (10 * max(0.0, -sw), 10 * max(0.0, sw))
         return p
     if anim == 'cast':
         k = [0, 0.45, 0.85, 1.0, 1.0, 0.5][f]
@@ -290,14 +362,7 @@ def main():
                 sheet.alpha_composite(to_frame(img, CFG[vname], mirror), (f * FW, r * FH))
         sheet.save(os.path.join(OUT, anim + '.png'), optimize=True)
         print('sheet', anim)
-    # Dialogue portrait from the three-quarter bust.
-    bust = Image.open(os.path.join(HERE, 'source', 'bust.png')).convert('RGBA')
-    bb = bust.getbbox()
-    bust = bust.crop(bb)
-    side = max(bust.size)
-    canvas = Image.new('RGBA', (side, side), (0, 0, 0, 0))
-    canvas.alpha_composite(bust, ((side - bust.width) // 2, 0))
-    canvas.resize((512, 512), Image.LANCZOS).save(os.path.join(OUT, 'portrait.png'))
+    # The dialogue portrait and app icons come from build_portrait_icon.py.
     meta = {'frame_width': FW, 'frame_height': FH, 'foot_offset': FOOT, 'rows': ['front', 'side', 'back'],
             'char_height_px': CHAR_H, 'animations': ANIMS}
     with open(os.path.join(OUT, 'witch.json'), 'w') as fh:

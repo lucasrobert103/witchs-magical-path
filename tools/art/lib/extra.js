@@ -112,6 +112,14 @@
           x.save(); x.rotate(a); x.beginPath(); x.moveTo(-l, 0); x.quadraticCurveTo(0, -7, l, 0); x.quadraticCurveTo(0, 7, -l, 0); x.fill(); x.restore();
         }
         break;
+      case 'run': {
+        // forward chevrons with speed streaks
+        x.beginPath(); x.moveTo(-6, -30); x.lineTo(22, 0); x.lineTo(-6, 30); x.stroke();
+        x.beginPath(); x.moveTo(14, -30); x.lineTo(42, 0); x.lineTo(14, 30); x.stroke();
+        x.lineWidth = 5;
+        for (const [y, l] of [[-16, 26], [0, 34], [16, 26]]) { x.beginPath(); x.moveTo(-44, y); x.lineTo(-44 + l * 0.6, y); x.stroke(); }
+        break;
+      }
       case 'read':
         x.beginPath(); x.moveTo(-40, -26); x.quadraticCurveTo(-20, -34, 0, -24); x.quadraticCurveTo(20, -34, 40, -26); x.lineTo(40, 30); x.quadraticCurveTo(20, 22, 0, 32); x.quadraticCurveTo(-20, 22, -40, 30); x.closePath(); x.stroke();
         x.beginPath(); x.moveTo(0, -24); x.lineTo(0, 32); x.stroke();

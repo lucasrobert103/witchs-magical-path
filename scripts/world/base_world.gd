@@ -424,35 +424,125 @@ func _update_reactive(delta: float) -> void:
 		elif d > 6.0:
 			r["rang"] = false
 
-## Small pauses: when Asterion stands still, she turns to watch something nearby.
+## When Asterion stands still she stays alive: she looks around, reacts to what is
+## near (shadows, sparks, glowing plants), sighs, feels the wind, plays with the light
+## in her hands, and after a long pause kneels to touch the ground.
+var _idle_next := 6.0
+var _idle_last := ""
+var _idle_knelt := false
+
 func _update_idle(delta: float) -> void:
 	var moving := player.move_input.length() > 0.05 or Vector2(player.vel.x, player.vel.z).length() > 0.2
-	if moving or player.anim == "cast" or not player.on_ground:
-		_idle_t = 0.0
-		player.look_target = Vector3.INF
+	if moving or player.anim == "cast" or not player.on_ground or player.anim == "kneel":
+		if moving:
+			_idle_t = 0.0
+			_idle_next = randf_range(5.0, 7.5)
+			_idle_knelt = false
+			player.look_target = Vector3.INF
 		return
 	_idle_t += delta
-	if _idle_t > 4.5 and player.look_target == Vector3.INF:
-		var best := Vector3.INF
-		var best_d := 1e9
-		var candidates: Array = []
-		for r in reactive:
-			candidates.append(_at(r["p"]))
-		for it in interactables:
-			if is_instance_valid(it):
-				candidates.append(it.global_position)
-		for c in candidates:
-			var d: float = c.distance_to(player.global_position)
-			if d > 2.0 and d < 14.0 and d < best_d:
-				best_d = d
-				best = c
-		if best == Vector3.INF:
+	var pp := player.global_position
+	# A shadow nearby: she keeps her eyes on it, no relaxed gestures.
+	var threat := Vector3.INF
+	for s in shades:
+		if is_instance_valid(s) and not s.dying and s.global_position.distance_to(pp) < 12.0:
+			threat = s.global_position
+	if threat != Vector3.INF:
+		player.look_target = threat
+		return
+	# A spark close by catches her attention.
+	for sp in sparks:
+		if is_instance_valid(sp) and sp.global_position.distance_to(pp) < 9.0:
+			player.look_target = sp.global_position
+			break
+	if _idle_t > 2.5 and player.look_target == Vector3.INF:
+		player.look_target = _interesting_point()
+	if _idle_t > _idle_next:
+		_idle_reaction()
+		_idle_next = _idle_t + randf_range(6.0, 9.5)
+	if _idle_t > 26.0 and not _idle_knelt:
+		_idle_knelt = true
+		player.start_kneeling(2.4, true)
+		await wait(0.6)
+		Props.burst(self, pp + player.facing * 0.5 + Vector3(0, 0.15, 0), Color(0.75, 1.0, 0.7), 16, 1.0, 0.2, 1.4)
+		Audio.sfx("essence_moon", -18.0, 0.2)
+
+func _interesting_point() -> Vector3:
+	var pp := player.global_position
+	var best := Vector3.INF
+	var best_d := 1e9
+	var candidates: Array = []
+	for r in reactive:
+		candidates.append(_at(r["p"]))
+	for it in interactables:
+		if is_instance_valid(it):
+			candidates.append(it.global_position)
+	for c in candidates:
+		var d: float = c.distance_to(pp)
+		if d > 2.0 and d < 14.0 and d < best_d and randf() < 0.8:
+			best_d = d
+			best = c
+	if best == Vector3.INF:
+		var a := randf() * TAU
+		best = pp + Vector3(cos(a), 0, sin(a)) * 6.0
+	return best
+
+func _idle_reaction() -> void:
+	var pool := ["shift", "sigh", "wind", "look"]
+	if player.magic_unlocked:
+		pool.append("magic")
+	pool.erase(_idle_last)
+	var pick: String = pool[randi() % pool.size()]
+	_idle_last = pick
+	match pick:
+		"shift", "sigh":
+			player.play_idle(pick)
+		"wind":
+			if player.play_idle("wind"):
+				_gust()
+		"look":
 			var a := randf() * TAU
-			best = player.global_position + Vector3(cos(a), 0, sin(a)) * 6.0
-		player.look_target = best
-	if _idle_t > 9.5:
-		_idle_t = 0.0
-		player.look_target = Vector3.INF
+			player.look_target = player.global_position + Vector3(cos(a), 0, sin(a)) * 8.0
+		"magic":
+			# She turns her palm and the light answers, spiralling around her hand.
+			player.play_idle("shift")
+			var hand := player.global_position + Vector3(0, 1.1, 0) + player.facing * 0.45
+			var motes := Props.particles("fx/sparkle.png", 14, 1.2, 0.14, player.essence_color())
+			motes.one_shot = true
+			motes.explosiveness = 0.3
+			motes.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+			motes.emission_sphere_radius = 0.25
+			motes.orbit_velocity_min = 0.6
+			motes.orbit_velocity_max = 1.2
+			motes.direction = Vector3.UP
+			motes.initial_velocity_min = 0.2
+			motes.initial_velocity_max = 0.5
+			add_child(motes)
+			motes.global_position = hand
+			motes.emitting = true
+			motes.finished.connect(motes.queue_free)
+			Audio.sfx("essence_" + (player.essence if player.essence != "" else "moon"), -20.0, 0.1)
+
+## A gust of wind: leaves rush past her while her hair and cloak lift.
+func _gust() -> void:
+	var leaves := Props.particles("fx/leaf_orange.png", 14, 1.6, 0.18, Color(1, 1, 1), false)
+	leaves.one_shot = true
+	leaves.explosiveness = 0.5
+	leaves.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	leaves.emission_box_extents = Vector3(0.5, 1.0, 2.0)
+	var right := cam_rig.cam.global_transform.basis.x
+	leaves.direction = right
+	leaves.spread = 15.0
+	leaves.initial_velocity_min = 3.0
+	leaves.initial_velocity_max = 5.0
+	leaves.gravity = Vector3(0, -0.4, 0)
+	leaves.angular_velocity_min = -200
+	leaves.angular_velocity_max = 200
+	add_child(leaves)
+	leaves.global_position = player.global_position + Vector3(0, 1.2, 0) - right * 3.0
+	leaves.emitting = true
+	leaves.finished.connect(leaves.queue_free)
+	Audio.sfx("jump", -18.0, 0.2)
 
 func _update_focus() -> void:
 	var best: Interactable = null

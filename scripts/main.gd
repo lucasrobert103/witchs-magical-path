@@ -228,6 +228,10 @@ func _on_touch_action(name: String) -> void:
 			world.do_cast()
 		"jump":
 			world.do_jump()
+		"run":
+			world.player.run_toggle = not world.player.run_toggle
+			world.player._still_t = 0.0
+			Audio.sfx("click", -12.0)
 		"interact":
 			world.do_interact()
 		"essence":
@@ -284,6 +288,7 @@ func _process(delta: float) -> void:
 		ui.touch.highlight["magic"] = 10.0
 	if Game.flag("flame_done") and not ui.touch.show_essence:
 		ui.touch.highlight["essence"] = 10.0
+	ui.touch.run_on = world.player.run_toggle
 	ui.touch.show_magic = world.player.magic_unlocked
 	ui.touch.show_essence = Game.flag("flame_done")
 	ui.touch.essence = world.player.essence if world.player.essence != "" else "moon"

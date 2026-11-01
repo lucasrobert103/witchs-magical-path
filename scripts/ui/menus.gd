@@ -55,7 +55,7 @@ class TitleScreen extends Control:
 		var st := UIKit.button("Configurações", false, 360)
 		st.pressed.connect(func(): open_settings.emit())
 		_col.add_child(st)
-		_credits = UIKit.label("Capítulo I — O Despertar  ·  Capítulo II — Um lugar para ficar  ·  v1.1", UIKit.sans, 15, Color(0.85, 0.85, 0.8, 0.6))
+		_credits = UIKit.label("Capítulo I — O Despertar  ·  Capítulo II — Um lugar para ficar  ·  v1.2", UIKit.sans, 15, Color(0.85, 0.85, 0.8, 0.6))
 		add_child(_credits)
 		UIKit.pin(_credits, 0.0, 1.0, 96.0, -36.0)
 		refresh()
@@ -164,7 +164,7 @@ class PauseMenu extends Control:
 		var t := UIKit.button("Salvar e voltar ao título", false, 360)
 		t.pressed.connect(func(): to_title.emit())
 		v.add_child(t)
-		var help := UIKit.label("Joystick: andar (empurre até o fim para correr)  ·  Arraste à direita: câmera\n✦ Magia  ·  Pular  ·  Mão: interagir  ·  Lua/Chama: trocar essência", UIKit.sans, 16, Color(0.9, 0.88, 0.8, 0.7), HORIZONTAL_ALIGNMENT_CENTER)
+		var help := UIKit.label("Joystick: andar (quanto mais longe, mais rápido)  ·  » Correr: liga/desliga  ·  Arraste à direita: câmera\n✦ Magia  ·  Pular  ·  Mão: interagir  ·  Lua/Chama: trocar essência", UIKit.sans, 16, Color(0.9, 0.88, 0.8, 0.7), HORIZONTAL_ALIGNMENT_CENTER)
 		v.add_child(help)
 		UIKit.pin(v, 0.5, 0.5, 0.0, 0.0)
 	func focus_first() -> void:

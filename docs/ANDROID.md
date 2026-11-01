@@ -2,7 +2,7 @@
 
 O preset `Android` gera um APK de **depuração** para **Android 7.0+ (API 24)**, **ARM64**,
 orientação horizontal, renderizador *Compatibility* (OpenGL ES 3.0), sem permissões e offline.
-Pacote: `com.asterion.caminhodabruxa`, versão `1.1.0` (código 4).
+Pacote: `com.asterion.caminhodabruxa`, versão `1.2.0` (código 5).
 
 ## Gerar
 

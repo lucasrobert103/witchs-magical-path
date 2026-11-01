@@ -12,6 +12,7 @@ var interact_icon := "interact"
 var show_essence := false
 var show_magic := false
 var essence := "moon"
+var run_on := false
 var highlight := {}   # button -> seconds of gentle pulsing when it first appears
 
 var _ring: Texture2D = load("res://assets/ui/ring.png")
@@ -30,13 +31,14 @@ const STICK_R := 92.0
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for n in ["magic", "jump", "interact", "pause", "moon", "flame", "read"]:
+	for n in ["magic", "jump", "interact", "pause", "moon", "flame", "read", "run"]:
 		_icons[n] = UIKit.icon_tex(n)
 
 func _buttons() -> Dictionary:
 	var s := size
 	var b := {
 		"jump": [Vector2(s.x - 300, s.y - 92), 50.0],
+		"run": [Vector2(s.x - 420, s.y - 70), 42.0],
 		"pause": [Vector2(s.x - 58, 58), 34.0],
 	}
 	if show_magic:
@@ -136,6 +138,10 @@ func _draw() -> void:
 		var fill := Color(0.05, 0.1, 0.07, 0.55)
 		if k == "magic":
 			fill = Color(0.86, 0.72, 0.42, 0.42 + _flash.get(k, 0.0) * 0.4)
+		if k == "run" and run_on:
+			fill = Color(0.95, 0.8, 0.45, 0.75)
+			var ph := fposmod(Time.get_ticks_msec() * 0.0015, 1.0)
+			draw_arc(c, r * (1.05 + ph * 0.3), 0, TAU, 40, Color(1.0, 0.9, 0.6, (1.0 - ph) * 0.6), 2.0, true)
 		if pressed:
 			fill = fill.lightened(0.25)
 		if highlight.get(k, 0.0) > 0.0:
@@ -145,6 +151,8 @@ func _draw() -> void:
 		draw_texture_rect(_ring, Rect2(c - Vector2.ONE * r * 1.12, Vector2.ONE * r * 2.24), false, tint)
 		var icon_name: String = k
 		var icol := UIKit.CREAM
+		if k == "run" and run_on:
+			icol = UIKit.INK
 		if k == "essence":
 			icon_name = essence
 			icol = UIKit.MOON if essence == "moon" else UIKit.FLAME

@@ -11,7 +11,7 @@ código, e a protagonista **Asterion** desenhada exatamente como na ficha de per
 | ![](docs/images/01_title.jpg) | ![](docs/images/03_prologue_08.jpg) | ![](docs/images/05_wake_dialogue.jpg) |
 | ![](docs/images/v2_c_path.jpg) | ![](docs/images/v2_e_memory_06.jpg) | ![](docs/images/v2_m_night2.jpg) |
 
-## O que há no jogo (v1.1)
+## O que há no jogo (v1.2)
 
 - **Prólogo — O nascimento dos primeiros Deuses**: o texto completo do autor, cartão a cartão,
   sobre cenas animadas. Tocar avança; "Pular" disponível.
@@ -41,6 +41,17 @@ código, e a protagonista **Asterion** desenhada exatamente como na ficha de per
 - **Movimento natural**: aceleração suave, curvas sem trancos, transição suave entre vistas,
   12 quadros de caminhada com cabelo e saia acompanhando o corpo, e pequenas pausas em que ela
   se vira para observar algo próximo.
+- **Viva quando parada**: ela olha em volta, encara as Sombras próximas, repara nas centelhas,
+  suspira, sente o vento levantar cabelo e capa (com folhas passando), troca o peso do corpo,
+  brinca com a luz nas mãos e, depois de uma longa pausa, se abaixa para tocar a terra.
+  Depois de correr muito, para e recupera o fôlego.
+- **Andar e correr naturais**: joystick analógico (o quanto se inclina define o passo), balanço
+  do quadril sobre o pé de apoio, braços acompanhando as pernas, inclinação nas curvas da
+  corrida, amortecimento ao aterrissar e poeira nos pés.
+- **Botão Correr** (»): liga/desliga e se desliga sozinho quando ela para (Shift no teclado).
+- **Retrato vivo nos diálogos**: respira, pisca, balança enquanto fala, inclina a cabeça em
+  perguntas e se sobressalta em exclamações; moldura dourada com lua e folha.
+- **Novo ícone** do aplicativo (adaptativo, com versão monocromática para ícones temáticos).
 - Controles de toque multitoque, teclado e controle; Voltar do Android pausa.
 - Trilha sonora e efeitos originais (CC0). Configurações de som, câmera e gráficos.
 
@@ -83,6 +94,10 @@ godot --headless --path . --script res://tests/compile_all.gd
 
 ```bash
 godot --headless --path . --script res://tests/story_smoke.gd
+```
+
+```bash
+godot --headless --path . --script res://tests/motion_smoke.gd
 ```
 
 O `story_smoke` joga os dois capítulos pelos sistemas reais: andar, pular o tronco, magia,

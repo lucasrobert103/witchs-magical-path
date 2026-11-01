@@ -10,8 +10,12 @@ uniform float rim_amount = 0.1;
 uniform float flash = 0.0;
 uniform vec4 flash_color : source_color = vec4(1.0, 0.45, 0.4, 1.0);
 global uniform vec4 world_light;
+uniform float lean = 0.0;     // shear: leaning into turns while running
+uniform float squash = 1.0;   // landing squash / jump stretch
 
 void vertex() {
+	VERTEX.x = VERTEX.x / sqrt(max(squash, 0.2)) + VERTEX.y * lean;
+	VERTEX.y *= squash;
 	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(
 		vec4(normalize(cross(vec3(0.0, 1.0, 0.0), INV_VIEW_MATRIX[2].xyz)), 0.0),
 		vec4(0.0, 1.0, 0.0, 0.0),

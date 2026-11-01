@@ -5,13 +5,13 @@ config_version=5
 
 config/name="Asterion — O Caminho da Bruxa"
 config/description="Aventura de bruxa em um mundo pintado: prólogo da criação e Capítulo I — O Despertar."
-config/version="1.1.0"
+config/version="1.2.0"
 run/main_scene="res://scenes/main.tscn"
 run/max_fps=60
 config/features=PackedStringArray("4.6", "GL Compatibility")
 boot_splash/bg_color=Color(0.03, 0.04, 0.05, 1)
 boot_splash/show_image=false
-config/icon="res://assets/icon.svg"
+config/icon="res://assets/icon.png"
 config/quit_on_go_back=false
 
 [autoload]

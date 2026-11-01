@@ -14,6 +14,6 @@ apk="$repo/build/asterion.apk"
 godot --headless --path "$repo" --import >/dev/null 2>&1 || true
 godot --headless --path "$repo" --export-debug Android "$apk" 2>&1 | tee "$repo/build/android-export.log"
 apksigner verify --verbose "$apk" | tee "$repo/build/android-signature.txt"
-python3 "$repo/tools/inspect_apk.py" "$apk" --expect-version 1.1.0 --require-game-assets | tee "$repo/build/android-metadata.json"
+python3 "$repo/tools/inspect_apk.py" "$apk" --expect-version 1.2.0 --require-game-assets | tee "$repo/build/android-metadata.json"
 sha256sum "$apk" | tee "$apk.sha256"
 ls -lh "$apk"

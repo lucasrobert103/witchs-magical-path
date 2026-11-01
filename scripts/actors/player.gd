@@ -9,7 +9,10 @@ signal footstep
 const SHEETS := {
 	"idle": {"frames": 12, "fps": 6.0, "loop": true},
 	"walk": {"frames": 12, "fps": 14.0, "loop": true},
-	"run": {"frames": 10, "fps": 16.0, "loop": true},
+	"run": {"frames": 10, "fps": 17.0, "loop": true},
+	"sigh": {"frames": 12, "fps": 8.0, "loop": false},
+	"wind": {"frames": 12, "fps": 9.0, "loop": false},
+	"shift": {"frames": 12, "fps": 6.0, "loop": false},
 	"cast": {"frames": 6, "fps": 15.0, "loop": false},
 	"jump": {"frames": 4, "fps": 0.0, "loop": false},
 	"kneel": {"frames": 6, "fps": 4.0, "loop": false},
@@ -19,8 +22,9 @@ const PIXELS_PER_METER := 210.0
 const FRAME_H := 384
 const FOOT := 18
 const ROWS := 3  # front, side (facing right), back
-const WALK_SPEED := 3.0
-const RUN_SPEED := 6.2
+const WALK_SPEED := 2.7
+const RUN_SPEED := 6.0
+const IDLE_VARIANTS := ["sigh", "wind", "shift"]
 const GRAVITY := 24.0
 const JUMP_VELOCITY := 8.2
 const RADIUS := 0.35
@@ -32,6 +36,9 @@ var facing := Vector3(0, 0, -1)
 var on_ground := true
 var move_input := Vector2.ZERO   # x right, y forward (from joystick / keys)
 var run_held := false
+var run_toggle := false          # the on-screen "Correr" button
+var _still_t := 0.0
+var _run_time := 0.0          # how long she has been running (to catch her breath after)
 var cam_yaw := 0.0
 var control_enabled := true
 
@@ -54,9 +61,16 @@ var _coyote := 0.0
 var _jump_buffer := 0.0
 var _mana_delay := 0.0
 var _kneel_hold := 0.0
+var _kneel_in := 0.0          # >0 while lowering herself (kneel frames played backwards)
 var _last_step_frame := -1
 var dead := false
 var _row := 2
+var _cycle := 0.0              # walk/run phase, continuous across speed changes
+var _lean := 0.0
+var _squash := 1.0
+var _squash_v := 0.0
+var _heading := 0.0
+var dust: CPUParticles3D
 
 var sprite: Sprite3D
 var shadow: MeshInstance3D
@@ -110,6 +124,17 @@ func _ready() -> void:
 	water_orb.add_child(drops)
 	water_orb.visible = false
 	add_child(water_orb)
+	dust = Props.particles("fx/soft_dot.png", 18, 0.8, 0.45, Color(0.62, 0.52, 0.4, 0.55), false)
+	dust.local_coords = false
+	dust.direction = Vector3.UP
+	dust.spread = 70.0
+	dust.initial_velocity_min = 0.3
+	dust.initial_velocity_max = 0.9
+	dust.gravity = Vector3(0, 0.2, 0)
+	dust.scale_amount_min = 0.5
+	dust.scale_amount_max = 1.2
+	dust.emitting = false
+	add_child(dust)
 	for key in SHEETS.keys():
 		_textures[key] = load("res://assets/sprites/witch/%s.png" % key)
 	shadow = Props.blob_shadow(1.1, 0.6)
@@ -130,13 +155,35 @@ func reset_state(full := true) -> void:
 		mana = max_mana
 	_set_anim("idle")
 
-func start_kneeling(hold: float) -> void:
+func start_kneeling(hold: float, smooth := false) -> void:
 	_kneel_hold = hold
+	_kneel_in = 0.5 if smooth else 0.0
 	_set_anim("kneel")
 	anim_time = 0.0
 
 func stand_up() -> void:
 	_kneel_hold = 0.0
+
+## Small idle reactions (a sigh, the wind in her hair, shifting her weight).
+func play_idle(name: String) -> bool:
+	if anim != "idle" or not on_ground or dead or Vector2(vel.x, vel.z).length() > 0.1:
+		return false
+	_set_anim(name)
+	return true
+
+func _dust_burst(n: int) -> void:
+	var b := Props.particles("fx/soft_dot.png", n, 0.9, 0.5, Color(0.62, 0.52, 0.4, 0.5), false)
+	b.one_shot = true
+	b.explosiveness = 0.9
+	b.direction = Vector3.UP
+	b.spread = 85.0
+	b.initial_velocity_min = 0.6
+	b.initial_velocity_max = 1.4
+	b.gravity = Vector3(0, -0.5, 0)
+	get_parent().add_child(b)
+	b.global_position = global_position + Vector3(0, 0.1, 0)
+	b.emitting = true
+	b.finished.connect(b.queue_free)
 
 func is_busy() -> bool:
 	return anim == "kneel" or dead
@@ -222,11 +269,19 @@ func tick(delta: float) -> void:
 	var stick := move_input.limit_length(1.0)
 	if can_move:
 		wish = right * stick.x + fwd * stick.y
-	var running := run_held or stick.length() > 0.92
-	var speed := RUN_SPEED if running else WALK_SPEED
+	# Run with the on-screen button (or Shift); the stick sets the pace.
+	if stick.length() < 0.1:
+		_still_t += delta
+		if _still_t > 1.6:
+			run_toggle = false
+	else:
+		_still_t = 0.0
+	var running := (run_held or run_toggle) and stick.length() > 0.2
+	var pace := clampf(inverse_lerp(0.1, 0.85, stick.length()), 0.35, 1.0)
+	var speed := RUN_SPEED * maxf(pace, 0.75) if running else WALK_SPEED * pace
 	if _cast_timer > 0.0:
 		speed *= 0.35
-	var target_v := wish * speed
+	var target_v := wish.normalized() * speed if wish.length() > 0.05 else Vector3.ZERO
 	# Gentle acceleration, a little quicker to slow down: soft, natural steps.
 	var accel := 11.0 if target_v.length() > Vector3(vel.x, 0, vel.z).length() else 15.0
 	if not on_ground:
@@ -266,6 +321,7 @@ func tick(delta: float) -> void:
 	if can_move and _jump_buffer > 0.0 and _coyote > 0.0:
 		vel.y = JUMP_VELOCITY
 		on_ground = false
+		_squash_v = 0.6
 		_coyote = 0.0
 		_jump_buffer = 0.0
 		Audio.sfx("jump", -6.0)
@@ -288,6 +344,8 @@ func tick(delta: float) -> void:
 		ny = ground
 		if vel.y < -2.0:
 			Audio.sfx("land", -8.0)
+			_squash_v = -clampf(-vel.y * 0.06, 0.3, 0.9)
+			_dust_burst(12)
 		vel.y = 0.0
 		on_ground = true
 	if on_ground and ground < p.y - 0.6:
@@ -314,7 +372,41 @@ func tick(delta: float) -> void:
 	glow_mat.set_shader_parameter("color", essence_color())
 	hand_glow.position = Vector3(0, 1.15, 0) + facing * 0.45
 
-	_update_anim(delta, Vector2(vel.x, vel.z).length(), running)
+	# Procedural polish: lean into turns, squash and stretch, dust when running.
+	var hsp := Vector2(vel.x, vel.z).length()
+	var heading := atan2(vel.x, vel.z)
+	var turn_rate := angle_difference(_heading, heading) / maxf(delta, 0.001) if hsp > 1.0 else 0.0
+	_heading = heading
+	var cam := get_viewport().get_camera_3d()
+	var side_sign := 1.0
+	if cam:
+		# Shear toward the inside of the turn as seen by the camera.
+		side_sign = signf(cam.global_transform.basis.z.dot(Vector3(vel.x, 0, vel.z).normalized()) + 0.001)
+	var want_lean := clampf(-turn_rate * 0.018 * clampf(hsp / RUN_SPEED, 0.0, 1.0), -0.12, 0.12) * side_sign
+	_lean = lerpf(_lean, want_lean, clampf(delta * 6.0, 0.0, 1.0))
+	_squash_v += ((1.0 - _squash) * 140.0 - _squash_v * 14.0) * delta
+	_squash += _squash_v * delta
+	if not on_ground:
+		_squash = lerpf(_squash, 1.0 + clampf(vel.y * 0.008, -0.04, 0.05), clampf(delta * 8.0, 0.0, 1.0))
+	_mat.set_shader_parameter("lean", _lean)
+	_mat.set_shader_parameter("squash", _squash)
+	_ghost_mat.set_shader_parameter("lean", _lean)
+	_ghost_mat.set_shader_parameter("squash", _squash)
+	dust.emitting = on_ground and hsp > WALK_SPEED + 1.0
+	dust.global_position = global_position + Vector3(0, 0.08, 0)
+	if on_ground and hsp > 4.0 and absf(turn_rate) > 5.0 and randf() < 0.2:
+		_dust_burst(5)
+
+	if anim == "run":
+		_run_time += delta
+	elif hsp < 0.3 and anim == "idle" and on_ground:
+		if _run_time > 3.5:
+			play_idle("sigh")   # catching her breath after a long run
+		_run_time = 0.0
+	elif anim == "walk":
+		_run_time = maxf(0.0, _run_time - delta * 2.0)
+
+	_update_anim(delta, hsp, running)
 
 func essence_color() -> Color:
 	match essence:
@@ -330,10 +422,16 @@ func _update_anim(delta: float, hspeed: float, running: bool) -> void:
 	if dead:
 		want = "hurt"
 	elif anim == "kneel":
-		if _kneel_hold > 0.0:
+		if _kneel_in > 0.0:
+			_kneel_in -= delta
+			anim_time = 0.0
+		elif _kneel_hold > 0.0:
 			_kneel_hold -= delta
 			anim_time = 0.0
 		elif anim_time * SHEETS["kneel"]["fps"] >= SHEETS["kneel"]["frames"] + 0.5:
+			want = "idle"
+	elif anim in IDLE_VARIANTS and hspeed < 0.3 and on_ground and _hurt_timer <= 0.0 and _cast_timer <= 0.0 and move_input.length() < 0.05:
+		if anim_time * SHEETS[anim]["fps"] >= SHEETS[anim]["frames"]:
 			want = "idle"
 	elif _hurt_timer > 0.0:
 		want = "hurt"
@@ -354,9 +452,17 @@ func _update_anim(delta: float, hspeed: float, running: bool) -> void:
 		"jump":
 			f = 0 if vel.y > 2.5 else (1 if vel.y > -1.5 else 2)
 		"walk":
-			f = int(anim_time * info["fps"] * clampf(hspeed / WALK_SPEED, 0.6, 1.4)) % n
+			# Phase is kept in whole cycles so walk ↔ run blends without skipping a step.
+			_cycle = fposmod(_cycle + delta * info["fps"] / n * clampf(hspeed / WALK_SPEED, 0.5, 1.5), 1.0)
+			f = int(_cycle * n) % n
 		"run":
-			f = int(anim_time * info["fps"] * clampf(hspeed / RUN_SPEED, 0.7, 1.2)) % n
+			_cycle = fposmod(_cycle + delta * info["fps"] / n * clampf(hspeed / RUN_SPEED, 0.7, 1.2), 1.0)
+			f = int(_cycle * n) % n
+		"kneel":
+			if _kneel_in > 0.0:
+				f = clampi(int(_kneel_in / 0.5 * (n - 1)), 0, n - 1)
+			else:
+				f = mini(int(anim_time * info["fps"]), n - 1)
 		_:
 			if info["fps"] > 0.0:
 				f = int(anim_time * info["fps"])

@@ -38,7 +38,7 @@ func _ready() -> void:
 	row.add_theme_constant_override("separation", 26)
 	_panel.add_child(row)
 	_portrait_frame = PortraitFrame.new()
-	_portrait_frame.custom_minimum_size = Vector2(150, 150)
+	_portrait_frame.custom_minimum_size = Vector2(168, 168)
 	row.add_child(_portrait_frame)
 	var col := VBoxContainer.new()
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -54,25 +54,132 @@ func _ready() -> void:
 	col.add_child(_hint)
 
 class PortraitFrame extends Control:
+	## Living portrait: breathes, blinks, sways while she talks and reacts to the mood
+	## of the line (a tilt for questions, a small start for exclamations).
 	var tex: Texture2D = load("res://assets/sprites/witch/portrait.png")
+	var eyes: Array = []
+	var skin: Array = []
+	var talking := false
+	var t := 0.0
+	var blink := 0.0
+	var _blink_t := -1.0
+	var _next_blink := 2.0
+	var pop := 0.0
+	var tilt_target := 0.0
+	var _tilt := 0.0
+	var dim_target := 0.0
+	var _dim := 0.0
+	const SRC_C := Vector2(256, 246)
+	const SRC_R := 236.0
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var f := FileAccess.open("res://assets/sprites/witch/portrait.json", FileAccess.READ)
+		if f:
+			var data = JSON.parse_string(f.get_as_text())
+			if typeof(data) == TYPE_DICTIONARY:
+				eyes = data.get("eyes", [])
+		var img := tex.get_image()
+		if img:
+			if img.is_compressed():
+				img.decompress()
+			for e in eyes:
+				var c := img.get_pixel(clampi(int(e[0]), 0, img.get_width() - 1), clampi(int(e[1] - e[3] * 0.95), 0, img.get_height() - 1))
+				skin.append(c)
+	func mood(text: String) -> void:
+		tilt_target = 0.0
+		dim_target = 0.0
+		if text.contains("?"):
+			tilt_target = deg_to_rad(3.5)
+		if text.contains("!"):
+			pop = 1.0
+		if text.begins_with("...") or text == "…":
+			dim_target = 0.22
+			tilt_target = deg_to_rad(-2.0)
+	func _process(delta: float) -> void:
+		if not is_visible_in_tree():
+			return
+		t += delta
+		pop = maxf(0.0, pop - delta * 3.0)
+		_tilt = lerpf(_tilt, tilt_target, clampf(delta * 5.0, 0.0, 1.0))
+		_dim = lerpf(_dim, dim_target, clampf(delta * 4.0, 0.0, 1.0))
+		_next_blink -= delta
+		if _next_blink <= 0.0 and _blink_t < 0.0:
+			_blink_t = 0.0
+			_next_blink = randf_range(2.2, 5.0) if randf() > 0.2 else 0.35
+		if _blink_t >= 0.0:
+			_blink_t += delta
+			blink = clampf(1.0 - absf(_blink_t - 0.07) / 0.07, 0.0, 1.0)
+			if _blink_t > 0.14:
+				_blink_t = -1.0
+				blink = 0.0
+		queue_redraw()
+	func _to_screen(src: Vector2, c: Vector2, r: float, scale: float, bob: Vector2) -> Vector2:
+		var d := (src - SRC_C - bob) / SRC_R * scale
+		return c + d.rotated(_tilt) * r
 	func _draw() -> void:
 		var c := size * 0.5
-		var r := minf(size.x, size.y) * 0.5
-		draw_circle(c, r, Color(0.12, 0.2, 0.15))
-		# Clip the portrait to a circle by drawing a textured polygon.
+		var r := minf(size.x, size.y) * 0.5 - 6.0
+		var scale := 1.0 + 0.012 * sin(t * 1.7) + pop * 0.06
+		var bob := Vector2(0, sin(t * 15.0) * 2.2) if talking else Vector2.ZERO
+		bob.y += sin(t * 1.7) * 2.0
+		# Soft halo and shadow.
+		draw_circle(c + Vector2(0, 4), r + 9.0, Color(0, 0, 0, 0.35))
+		draw_circle(c, r + 7.0, Color(1.0, 0.85, 0.5, 0.18 + 0.1 * pop))
 		var pts := PackedVector2Array()
 		var uvs := PackedVector2Array()
-		var src := Rect2(120, 40, 280, 280)
 		var ts := tex.get_size()
-		for i in 48:
-			var a := TAU * i / 48.0
+		for i in 64:
+			var a := TAU * i / 64.0
 			var d := Vector2(cos(a), sin(a))
-			pts.append(c + d * (r - 3))
-			uvs.append((src.get_center() + d * src.size.x * 0.5) / ts)
+			pts.append(c + d * r)
+			var src := SRC_C + bob + d.rotated(-_tilt) * SRC_R / scale
+			uvs.append(src / ts)
 		draw_polygon(pts, PackedColorArray([Color.WHITE]), uvs, tex)
-		draw_arc(c, r - 2, 0, TAU, 64, UIKit.GOLD, 3.0, true)
+		# Eyelids for blinking, painted with her own skin tone.
+		if blink > 0.01:
+			for i in eyes.size():
+				var e: Array = eyes[i]
+				var ec := Vector2(e[0], e[1])
+				var w: float = e[2] * 0.62
+				var h: float = e[3] * 0.62
+				var lid := PackedVector2Array()
+				var lash := PackedVector2Array()
+				for k in 17:
+					var u := float(k) / 16.0
+					var x := lerpf(-w, w, u)
+					var top := -h * (1.0 - 0.55 * pow(2.0 * u - 1.0, 2.0))
+					lid.append(_to_screen(ec + Vector2(x, top - 2.0), c, r, scale, bob))
+				for k in 17:
+					var u := 1.0 - float(k) / 16.0
+					var x := lerpf(-w, w, u)
+					var top := -h * (1.0 - 0.55 * pow(2.0 * u - 1.0, 2.0))
+					var bottom := h * 0.75 * (1.0 - 0.6 * pow(2.0 * u - 1.0, 2.0))
+					var p := _to_screen(ec + Vector2(x, lerpf(top, bottom, blink)), c, r, scale, bob)
+					lid.append(p)
+					lash.append(p)
+				var col: Color = skin[i] if i < skin.size() else Color(0.6, 0.38, 0.28)
+				draw_colored_polygon(lid, col)
+				draw_polyline(lash, Color(0.12, 0.06, 0.04, 0.9 * blink), 2.2, true)
+		if _dim > 0.01:
+			draw_circle(c, r, Color(0.02, 0.04, 0.08, _dim))
+		# Frame: double gold ring, a crescent above and a leaf diamond below.
+		draw_arc(c, r + 1.5, 0, TAU, 96, UIKit.GOLD, 4.0, true)
+		draw_arc(c, r + 6.5, 0, TAU, 96, Color(0.86, 0.76, 0.54, 0.6), 1.6, true)
+		var mc := c + Vector2(r * 0.66, -r * 0.74)
+		var moon := PackedVector2Array()
+		for k in 25:
+			var a := lerpf(PI * 0.35, PI * 1.65, k / 24.0)
+			moon.append(mc + Vector2(cos(a), sin(a)) * 11.0)
+		for k in 25:
+			var a := lerpf(PI * 1.5, PI * 0.5, k / 24.0)
+			moon.append(mc + Vector2(4.5, 0) + Vector2(cos(a) * 7.5, sin(a) * 10.0))
+		draw_colored_polygon(moon, UIKit.GOLD)
+		var dia := c + Vector2(0, r + 4)
+		var dpts := PackedVector2Array([dia + Vector2(0, -12), dia + Vector2(12, 0), dia + Vector2(0, 12), dia + Vector2(-12, 0)])
+		draw_colored_polygon(dpts, Color(0.05, 0.09, 0.07))
+		draw_polyline(dpts + PackedVector2Array([dpts[0]]), UIKit.GOLD, 2.0, true)
+		draw_line(dia + Vector2(0, -7), dia + Vector2(0, 7), UIKit.GOLD, 1.6, true)
+		draw_arc(dia, 6.0, -PI * 0.5, PI * 0.5, 10, UIKit.GOLD, 1.6, true)
 
 func show_lines(lines: Array) -> void:
 	if lines.is_empty():
@@ -102,6 +209,7 @@ func _show_current() -> void:
 	_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER if narration else HORIZONTAL_ALIGNMENT_LEFT
 	_text.visible_characters = 0
 	_typing = 0.0
+	(_portrait_frame as PortraitFrame).mood(_text.text)
 	UIKit.pin(_panel, 0.5, 1.0, 0.0, -26.0)
 	_cooldown = 0.15
 
@@ -113,6 +221,7 @@ func _process(delta: float) -> void:
 	if _text.visible_characters < total:
 		_typing += delta * 52.0
 		_text.visible_characters = mini(total, int(_typing))
+	(_portrait_frame as PortraitFrame).talking = _text.visible_characters < total
 	_hint.modulate.a = 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.005) if _text.visible_characters >= total else 0.0
 
 func advance() -> void:
