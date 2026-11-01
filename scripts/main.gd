@@ -1,9 +1,9 @@
 extends Node
 ## Screen flow: title → prologue → chapter → ending, plus input routing and pause.
 
-var world: World
+var world: BaseWorld
 var ui: UIRoot
-var state := "title"   # title, prologue, play, paused, ending, loading
+var state := "title"   # title, prologue, play, paused, ending, loading, memory, map
 var _settings_from := ""
 
 func _ready() -> void:
@@ -15,6 +15,9 @@ func _ready() -> void:
 	ui.pause_menu.resume.connect(_resume)
 	ui.pause_menu.settings.connect(func(): _open_settings("pause"))
 	ui.pause_menu.to_title.connect(_pause_to_title)
+	ui.pause_menu.map.connect(_open_map)
+	ui.map_view.closed.connect(_close_map)
+	ui.memory.done.connect(_on_memory_done)
 	ui.settings.closed.connect(_close_settings)
 	ui.ending.to_title.connect(_ending_to_title)
 	ui.prologue.done.connect(_on_prologue_done)
@@ -31,12 +34,16 @@ func _make_world() -> void:
 	if world:
 		world.queue_free()
 		remove_child(world)
-	world = World.new()
+	if Game.chapter() >= 2:
+		world = ValleyWorld.new()
+	else:
+		world = World.new()
 	add_child(world)
 	move_child(world, 0)
 	world.dialogue_requested.connect(_on_dialogue_requested)
 	world.fade_requested.connect(func(to_black, d): ui.fade_to(1.0 if to_black else 0.0, d))
 	world.chapter_completed.connect(_on_chapter_completed)
+	world.portal_crossed.connect(_on_portal_crossed)
 	ui.hud.bind(world)
 
 func _show_title() -> void:
@@ -95,8 +102,58 @@ func _on_continue() -> void:
 	ui.title.visible = false
 	ui.set_gameplay_visible(true)
 	state = "play"
-	world.begin_play()
-	ui.fade_to(0.0, 1.2)
+	if world is ValleyWorld and not Game.flag("v_arrived"):
+		world.begin_arrival()
+		ui.fade_to(0.0, 2.5)
+	else:
+		world.begin_play()
+		ui.fade_to(0.0, 1.2)
+
+## Crossing the arch: the memory, then the other side of the portal.
+func _on_portal_crossed() -> void:
+	state = "memory"
+	ui.set_gameplay_visible(false)
+	ui.dialogue.close()
+	await ui.fade_to(1.0, 1.6).finished
+	world.visible = false
+	Audio.play_ambience("")
+	Audio.play_music("res://assets/audio/music_prologue.ogg", 3.0, -6.0)
+	ui.memory.visible = true
+	ui.memory.start()
+	ui.fade_to(0.0, 2.0)
+
+func _on_memory_done() -> void:
+	if state != "memory":
+		return
+	state = "loading"
+	await ui.fade_to(1.0, 1.4).finished
+	ui.memory.visible = false
+	Game.state["chapter"] = 2
+	Game.state["checkpoint"] = "arrival"
+	if String(Game.state.get("essence", "")) == "":
+		Game.state["essence"] = "moon"
+	Game.save_game()
+	_make_world()
+	Audio.play_music("res://assets/audio/music_forest.ogg", 4.0, -7.0)
+	Audio.play_ambience("res://assets/audio/ambience_forest.ogg", -12.0)
+	ui.set_gameplay_visible(true)
+	state = "play"
+	ui.hud.show_area("Capítulo II", "Um lugar para ficar")
+	world.begin_arrival()
+	ui.fade_to(0.0, 3.0)
+
+func _open_map() -> void:
+	if state != "paused":
+		return
+	state = "map"
+	ui.map_view.set_marker(Vector2(0.405, 0.455) if Game.chapter() >= 2 else Vector2(0.235, 0.575))
+	ui.map_view.visible = true
+	Audio.sfx("open", -8.0)
+
+func _close_map() -> void:
+	ui.map_view.visible = false
+	state = "paused"
+	ui.pause_menu.focus_first()
 
 func _on_dialogue_requested(lines: Array) -> void:
 	ui.dialogue.show_lines(lines)
@@ -138,6 +195,7 @@ func _resume() -> void:
 	state = "play"
 	ui.pause_menu.visible = false
 	get_tree().paused = false
+	ui.hud.show_objective_again()
 
 func _pause_to_title() -> void:
 	world.checkpoint(String(Game.state.get("checkpoint", "clearing")))
@@ -194,8 +252,14 @@ func _notification(what: int) -> void:
 					get_tree().quit()
 			"prologue":
 				ui.prologue.finish()
+			"memory":
+				ui.memory.finish()
+			"map":
+				_close_map()
 	elif what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		_pause()
+	elif what == NOTIFICATION_APPLICATION_RESUMED and state == "paused":
+		ui.hud.show_objective_again()
 
 func _input(event: InputEvent) -> void:
 	if state == "play" and ui.dialogue.active:
@@ -216,6 +280,10 @@ func _input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	if state != "play" or world == null:
 		return
+	if world.player.magic_unlocked and not ui.touch.show_magic:
+		ui.touch.highlight["magic"] = 10.0
+	if Game.flag("flame_done") and not ui.touch.show_essence:
+		ui.touch.highlight["essence"] = 10.0
 	ui.touch.show_magic = world.player.magic_unlocked
 	ui.touch.show_essence = Game.flag("flame_done")
 	ui.touch.essence = world.player.essence if world.player.essence != "" else "moon"

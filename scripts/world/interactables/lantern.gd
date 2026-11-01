@@ -29,6 +29,14 @@ func _ready() -> void:
 	if lit:
 		set_lit(true, true)
 
+func tick(_delta: float, player: Player) -> void:
+	# Before it is lit, the lantern stirs when glowing hands come near.
+	if lit or not player.magic_unlocked:
+		return
+	var d := player.global_position.distance_to(global_position)
+	var e := (1.0 - smoothstep(1.5, 6.0, d)) * (0.25 + 0.2 * sin(Time.get_ticks_msec() * 0.008))
+	(_flame.material_override as ShaderMaterial).set_shader_parameter("energy", maxf(0.0, e))
+
 func accepts_magic() -> bool:
 	return not lit
 

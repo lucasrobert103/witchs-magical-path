@@ -21,6 +21,15 @@
 - As falas de Asterion e os nomes das áreas (Clareira do Despertar, Fonte da Lua, Trilha das
   Lanternas, Ruínas Esquecidas, Chama Eterna, Santuário dos Primeiros).
 
+## Capítulo II e o Primeiro Continente (proposta do autor)
+
+- O mapa do **Primeiro Continente** (nomes provisórios) está no jogo em Pausa → Mapa.
+- A lembrança ao atravessar o portal mostra um fragmento incompleto da história primordial;
+  Asterion não se vê na cena nem compreende sua ligação — a emoção vem antes da resposta.
+- Vale do Rio: a clareira, o abrigo de galhos, o primeiro canteiro e a descoberta de que a água
+  acompanha o gesto de sua mão. A futura fazenda (casa, plantações, ervas, clareira mágica)
+  ainda não foi construída: o terreno da clareira começa tomado pela vegetação.
+
 ## Pendências
 
 - Personalidade e voz de Asterion em mais profundidade; próximos capítulos.

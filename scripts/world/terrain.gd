@@ -18,6 +18,11 @@ var _h := 0
 var _walk := PackedFloat32Array()
 var mask: Image
 var ground: MeshInstance3D
+var base_height: Callable    # optional large-scale relief (valleys, ridges)
+var bank_height := 2.6
+var river: Array = []        # polyline of Vector2 for carved river beds
+var river_depth := 1.6
+var river_width := 3.0
 
 func add_area(a: Vector2, b: Vector2, r: float) -> void:
 	areas.append({"a": a, "b": b, "r": r})
@@ -121,7 +126,37 @@ func height(x: float, z: float) -> float:
 	var undulate := 0.18 * sin(x * 0.23 + z * 0.11) + 0.12 * sin(z * 0.31 - x * 0.07)
 	var w := walk_value(x, z)
 	var bank := (1.0 - w)
-	return undulate + bank * bank * 2.6
+	var h := undulate + bank * bank * bank_height
+	if base_height.is_valid():
+		h += float(base_height.call(x, z))
+	if not river.is_empty():
+		var d := river_dist(Vector2(x, z))
+		h -= river_depth * (1.0 - smoothstep(river_width * 0.6, river_width * 1.9, d))
+	return h
+
+func river_dist(p: Vector2) -> float:
+	var best := 1e9
+	for i in river.size() - 1:
+		best = minf(best, seg_dist(p, river[i], river[i + 1]))
+	return best
+
+func river_closest(p: Vector2) -> Vector2:
+	var best := 1e9
+	var out := p
+	for i in river.size() - 1:
+		var c := seg_closest(p, river[i], river[i + 1])
+		var d := c.distance_to(p)
+		if d < best:
+			best = d
+			out = c
+	return out
+
+## True when no blocking obstacle is within r of p.
+func obstacle_clear(p: Vector2, r: float) -> bool:
+	for o in obstacles:
+		if seg_dist(p, o["a"], o["b"]) < float(o["r"]) + r:
+			return false
+	return true
 
 ## Paints the layout mask: R walkable softness, G stone path, B dirt fringe, A pool glow.
 func build_mask() -> void:

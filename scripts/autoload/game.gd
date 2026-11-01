@@ -29,6 +29,7 @@ func _ready() -> void:
 func new_state() -> void:
 	state = {
 		"version": SAVE_VERSION,
+		"chapter": 1,
 		"checkpoint": "clearing",
 		"flags": {},
 		"sparks": [],
@@ -43,6 +44,9 @@ func flag(name: String) -> bool:
 func set_flag(name: String, value := true) -> void:
 	state["flags"][name] = value
 	state_changed.emit()
+
+func chapter() -> int:
+	return int(state.get("chapter", 1))
 
 func spark_count() -> int:
 	return state.get("sparks", []).size()

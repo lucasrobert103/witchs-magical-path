@@ -52,7 +52,14 @@ func set_lit(value: bool) -> void:
 	tw.tween_property(_halo.material_override, "shader_parameter/energy", 0.7 if value else 0.0, 0.8)
 	_fire.emitting = value
 
-func tick(delta: float, _player: Player) -> void:
+func tick(delta: float, player: Player) -> void:
+	if not lit and not locked:
+		# Its sign glows faintly in the colour of the force it waits for.
+		var d := player.global_position.distance_to(global_position)
+		var e := (1.0 - smoothstep(2.0, 8.0, d)) * 0.45
+		if player.essence == kind:
+			e *= 1.8
+		_rune.material_override.set_shader_parameter("energy", e)
 	if lit and not locked:
 		timer -= delta
 		var flicker := 1.6 if timer > 4.0 else (1.6 if int(timer * 6.0) % 2 == 0 else 0.4)

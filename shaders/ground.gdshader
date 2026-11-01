@@ -15,6 +15,7 @@ uniform vec4 shadow_tint : source_color = vec4(0.42, 0.52, 0.5, 1.0);
 uniform vec4 pool_glow : source_color = vec4(0.35, 0.85, 0.95, 1.0);
 uniform float dapple_strength = 1.0;
 varying vec3 wpos;
+global uniform vec4 world_light;
 
 void vertex() {
 	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -39,5 +40,5 @@ void fragment() {
 	col *= mix(shadow_tint.rgb, light_tint.rgb * 1.22, clamp(0.25 + sun * (0.25 + 0.6 * open) + open * 0.2, 0.0, 1.0));
 	col *= mix(0.5, 1.0, smoothstep(0.0, 0.5, m.r));
 	col += pool_glow.rgb * m.a * 0.55;
-	ALBEDO = col;
+	ALBEDO = col * world_light.rgb;
 }

@@ -12,6 +12,7 @@ var interact_icon := "interact"
 var show_essence := false
 var show_magic := false
 var essence := "moon"
+var highlight := {}   # button -> seconds of gentle pulsing when it first appears
 
 var _ring: Texture2D = load("res://assets/ui/ring.png")
 var _ring_ticks: Texture2D = load("res://assets/ui/ring_ticks.png")
@@ -113,6 +114,8 @@ func _input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	for k in _flash.keys():
 		_flash[k] = maxf(0.0, _flash[k] - delta * 4.0)
+	for k in highlight.keys():
+		highlight[k] = maxf(0.0, highlight[k] - delta)
 	queue_redraw()
 
 func _draw() -> void:
@@ -135,6 +138,9 @@ func _draw() -> void:
 			fill = Color(0.86, 0.72, 0.42, 0.42 + _flash.get(k, 0.0) * 0.4)
 		if pressed:
 			fill = fill.lightened(0.25)
+		if highlight.get(k, 0.0) > 0.0:
+			var ph := fposmod(Time.get_ticks_msec() * 0.0012, 1.0)
+			draw_arc(c, r * (1.1 + ph * 0.6), 0, TAU, 48, Color(1.0, 0.9, 0.6, (1.0 - ph) * 0.8), 3.0, true)
 		draw_circle(c, r, fill)
 		draw_texture_rect(_ring, Rect2(c - Vector2.ONE * r * 1.12, Vector2.ONE * r * 2.24), false, tint)
 		var icon_name: String = k

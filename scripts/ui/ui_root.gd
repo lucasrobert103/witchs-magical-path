@@ -11,6 +11,8 @@ var pause_menu: Menus.PauseMenu
 var settings: Menus.SettingsPanel
 var ending: Menus.EndingScreen
 var prologue: Prologue
+var memory: Memory
+var map_view: Menus.MapView
 var fade: ColorRect
 
 func _ready() -> void:
@@ -54,6 +56,12 @@ func _ready() -> void:
 	prologue = Prologue.new()
 	add_child(prologue)
 	prologue.visible = false
+	memory = Memory.new()
+	add_child(memory)
+	memory.visible = false
+	map_view = Menus.MapView.new()
+	add_child(map_view)
+	map_view.visible = false
 	fade = ColorRect.new()
 	fade.color = Color(0.0, 0.0, 0.0, 1.0)
 	fade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

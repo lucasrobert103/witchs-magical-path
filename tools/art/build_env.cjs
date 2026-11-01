@@ -73,6 +73,23 @@ const JOBS = {
   'ui/icon_read.png': `Extra.icon('read')`,
   'ui/ring.png': `Extra.ring({})`,
   'ui/ring_ticks.png': `Extra.ring({ticks:true})`,
+  'textures/bark_brown.png': `Valley.barkTile({seed:5, base:'#5b4535', dark:'#2a1e17', light:'#8c7462'})`,
+  'textures/bark_grey.png': `Valley.barkTile({seed:6, base:'#5d5850', dark:'#2b2824', light:'#9a9284'})`,
+  'sprites/env/clump_autumn.png': `Valley.leafClump({seed:1, leaves:${AUTUMN}})`,
+  'sprites/env/clump_gold.png': `Valley.leafClump({seed:2, leaves:['#3a3a1e','#d99a3c','#e8b74a','#b4612a','#ffe08a','#fff1c0']})`,
+  'sprites/env/clump_green.png': `Valley.leafClump({seed:3, leaves:${GREEN}})`,
+  'sprites/env/clump_teal.png': `Valley.leafClump({seed:4, leaves:${TEAL}})`,
+  'sprites/valley/mountains.png': `Valley.mountains({seed:9, rock:'#8a8f9a', base:'#4a5a52', haze:'#b9c7cf', forest:'#3d5a40'})`,
+  'sprites/valley/hills.png': `Valley.hills({seed:11, green:'#4f7a3a', autumn:'#c27a34', gold:'#d9b04a', haze:'#b9c7cf'})`,
+  'sprites/valley/branches.png': `Valley.branches({seed:3})`,
+  'sprites/valley/seed_plant.png': `Valley.seedPlant({seed:21})`,
+  'sprites/valley/shelter_1.png': `Valley.shelter({seed:31, stage:1})`,
+  'sprites/valley/shelter_2.png': `Valley.shelter({seed:31, stage:2})`,
+  'sprites/valley/soil.png': `Valley.soilPlot({seed:41})`,
+  'sprites/valley/soil_wet.png': `Valley.soilPlot({seed:41, wet:true})`,
+  'sprites/valley/sprouts.png': `Valley.sprouts({seed:51})`,
+  'sprites/valley/reeds.png': `Valley.reeds({seed:61})`,
+  'sprites/valley/thatch.png': `Valley.thatch({seed:71})`,
 };
 (async () => {
   const filter = process.argv[2];
@@ -80,7 +97,7 @@ const JOBS = {
   const p = await b.newPage();
   p.on('pageerror', e => { console.error('ERR', e.message); process.exit(1); });
   await p.setContent('<html><body></body></html>');
-  for (const f of ['paint.js', 'env.js', 'extra.js']) await p.addScriptTag({ path: path.join(__dirname, 'lib', f) });
+  for (const f of ['paint.js', 'env.js', 'extra.js', 'valley.js']) await p.addScriptTag({ path: path.join(__dirname, 'lib', f) });
   for (const [out, expr] of Object.entries(JOBS)) {
     if (filter && !out.includes(filter)) continue;
     const data = await p.evaluate(`(${expr}).toDataURL('image/png')`);

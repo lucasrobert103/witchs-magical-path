@@ -20,7 +20,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.abspath(os.path.join(HERE, '..', '..', '..', 'assets', 'sprites', 'witch'))
 FW, FH, FOOT = 256, 384, 18
 CHAR_H = 348            # pixels from sole to top of hair in a frame
-ANIMS = {'idle': 8, 'walk': 8, 'run': 8, 'cast': 6, 'jump': 4, 'kneel': 6, 'hurt': 1}
+ANIMS = {'idle': 12, 'walk': 12, 'run': 10, 'cast': 6, 'jump': 4, 'kneel': 6, 'hurt': 1}
 
 
 def ss(a, b, x):
@@ -192,8 +192,10 @@ def pose(view, anim, f, n):
     if anim in ('walk', 'run'):
         run = anim == 'run'
         amp = 1.7 if run else 1.0
-        p = {'bob': (10 if run else 5) * abs(s), 'phase': ph, 'hair_wave': 6.0 * amp,
-             'hair_y': -6 * amp * abs(co), 'skirt_x': 7 * amp * s if not side else 6 * amp * co}
+        # Hair and cloth trail the body by a fraction of the cycle (follow-through).
+        lag = ph - 0.9
+        p = {'bob': (9 if run else 3.5) * abs(s), 'phase': ph - 0.6, 'hair_wave': 5.0 * amp,
+             'hair_y': -5 * amp * abs(math.cos(lag)), 'skirt_x': 6 * amp * math.sin(lag) if not side else 5 * amp * math.cos(lag)}
         if side:
             p['hair_x'] = 18 * amp
             p['skirt_x'] = 10 * amp + 4 * co
@@ -204,7 +206,7 @@ def pose(view, anim, f, n):
             lift_b = (60 if run else 26) * max(0.0, -co)
             p['swing'] = [(sw, 0.78, lift_b), (-sw, 1.0, lift_a)]
         else:
-            L = (85 if run else 55)
+            L = (80 if run else 46)
             p['lift'] = (L * max(0.0, s), L * max(0.0, -s))
             p['hair_x'] = 0.0
         return p

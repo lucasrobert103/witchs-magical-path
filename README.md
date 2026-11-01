@@ -1,6 +1,6 @@
 # Asterion — O Caminho da Bruxa
 
-![Ruínas Esquecidas — captura real do jogo](docs/images/13_cast.jpg)
+![O Vale do Rio visto do portal — captura real do jogo](docs/images/v2_g_vista.jpg)
 
 Aventura de bruxa para **Android** (Godot 4.6.3 / GDScript) em estilo "HD‑2D" pintado:
 um mundo 3D enevoado de floresta outonal, com árvores, ruínas e efeitos pintados à mão por
@@ -9,31 +9,40 @@ código, e a protagonista **Asterion** desenhada exatamente como na ficha de per
 | Título | Prólogo | Diálogo |
 | --- | --- | --- |
 | ![](docs/images/01_title.jpg) | ![](docs/images/03_prologue_08.jpg) | ![](docs/images/05_wake_dialogue.jpg) |
-| ![](docs/images/08_pool.jpg) | ![](docs/images/03_prologue_14.jpg) | ![](docs/images/11_brazier.jpg) |
+| ![](docs/images/v2_c_path.jpg) | ![](docs/images/v2_e_memory_06.jpg) | ![](docs/images/v2_m_night2.jpg) |
 
-## O que há no jogo (v1.0)
+## O que há no jogo (v1.1)
 
 - **Prólogo — O nascimento dos primeiros Deuses**: o texto completo do autor, cartão a cartão,
-  sobre cenas animadas (o Infinito, a Deusa, o reflexo, o nascimento do Deus, a criação dos
-  oceanos, ventos, montanhas e estrelas, a magia nas raízes e nas chamas, as primeiras bruxas).
-  Tocar avança; "Pular" disponível.
-- **Capítulo I — O Despertar** (~15–25 min): Asterion desperta na Clareira e segue o *Lume*
-  (luz-guia) por cinco áreas:
-  1. **Clareira do Despertar** — pedra com inscrição, primeira centelha escondida.
-  2. **Fonte da Lua** — ao tocar a água, Asterion descobre a magia (essência da Lua).
-  3. **Trilha das Lanternas** — acender três lanternas de pedra com magia recolhe as raízes.
-  4. **Ruínas Esquecidas** — primeiro encontro com as **Sombras**; centelha atrás de um tronco (pule!).
-  5. **Chama Eterna** — ganha a essência da Chama e a troca **Lua ↔ Chama**.
-  6. **Santuário dos Primeiros** — emboscada de sombras e o enigma final: os altares da Lua e da
-     Chama precisam despertar **juntos** (“Nenhum existia acima do outro”), abrindo o portal.
-- **5 centelhas** escondidas (cada uma aumenta a mana e revela um verso do prólogo).
-- Vida e mana com o emblema de folha, objetivo no topo, títulos de área, diálogos com retrato,
-  checkpoints com salvamento automático, morte e renascimento, tela de fim de capítulo com estatísticas.
-- **Controles de toque multitoque**: joystick flutuante (empurre até o fim para correr),
-  arrastar à direita para girar a câmera, botões Magia ✦, Pular, Interagir (aparece perto de objetos),
-  Essência e Pausa. Botão Voltar do Android pausa. Também funciona com teclado e controle.
-- Trilha sonora, ambiente e efeitos originais sintetizados (CC0).
-- Configurações: volume de música/efeitos, sensibilidade da câmera, gráficos *Bonito/Leve*.
+  sobre cenas animadas. Tocar avança; "Pular" disponível.
+- **Capítulo I — O Despertar** (Bosque do Despertar): um aprendizado em cadeia, sem legendas
+  explicando cada ação — o jogador descobre junto com Asterion:
+  1. a floresta responde à presença dela (cogumelos que acendem, o **Anel de Cogumelos**);
+  2. a **Fonte da Lua** desperta a luz em suas mãos;
+  3. as **lanternas** frias se agitam quando ela se aproxima — a luz as reacende e as raízes recuam;
+  4. nas **Ruínas**, as Sombras recuam da luz; uma centelha espera atrás de um tronco (pule!);
+  5. a **Chama Eterna** traz a segunda força (troca **Lua ↔ Chama**);
+  6. no **Santuário**, cada altar brilha na cor da força que espera; os dois precisam despertar
+     **juntos** (“Nenhum existia acima do outro”) e o portal se abre.
+- **A lembrança — Uma saudade sem rosto**: ao atravessar o arco, um fragmento breve e incompleto
+  da história primordial — duas presenças que se desfazem quando observadas, a luz entre elas,
+  águas profundas, uma silhueta entre estrelas. Asterion sente saudade sem reconhecer ninguém.
+- **Capítulo II — Um lugar para ficar** (Vale do Rio): do alto da encosta, a primeira visão do
+  continente — rio, colinas, montanhas e névoa. A missão:
+  1. encontrar a clareira (água perto, chão firme, luz);
+  2. recolher galhos e montar um abrigo simples;
+  3. observar a planta, recolher sementes, preparar a terra e semear;
+  4. regar: ao tocar o rio, a água acompanha o gesto da mão — e ela repete, com cuidado;
+  5. a primeira noite, à entrada do abrigo: “— Amanhã eu continuo.”
+- **Mapa do Primeiro Continente** (Pausa → Mapa), com a posição de Asterion. Nomes provisórios.
+- **5 centelhas** escondidas, diálogos com retrato, salvamento automático e checkpoints.
+- **Floresta sólida**: troncos 3D com raízes, galhos e casca, coroados por copas pintadas — as
+  árvores mantêm forma e proporção de qualquer ângulo e de perto.
+- **Movimento natural**: aceleração suave, curvas sem trancos, transição suave entre vistas,
+  12 quadros de caminhada com cabelo e saia acompanhando o corpo, e pequenas pausas em que ela
+  se vira para observar algo próximo.
+- Controles de toque multitoque, teclado e controle; Voltar do Android pausa.
+- Trilha sonora e efeitos originais (CC0). Configurações de som, câmera e gráficos.
 
 ## Controles no computador
 
@@ -76,9 +85,10 @@ godot --headless --path . --script res://tests/compile_all.gd
 godot --headless --path . --script res://tests/story_smoke.gd
 ```
 
-O `story_smoke` joga o Capítulo I inteiro pelos sistemas reais (andar, pular o tronco, magia,
-lanternas, sombras, centelha, essências, altares, portal, salvamento). `tests/tour.gd` gera as
-capturas (precisa de tela/xvfb).
+O `story_smoke` joga os dois capítulos pelos sistemas reais: andar, pular o tronco, magia,
+lanternas, sombras, centelha, essências, altares, portal, lembrança, chegada ao vale, galhos,
+abrigo, sementes, plantio, rega e a primeira noite. `tests/tour.gd` e `tests/tour2.gd` geram
+capturas (precisam de tela/xvfb).
 
 ### Android
 
@@ -90,7 +100,7 @@ capturas (precisa de tela/xvfb).
 ./tools/export_android.sh
 ```
 
-Gera `build/asterion.apk` (assinatura de depuração, Android 7.0+, ARM64, OpenGL ES 3.0,
+Gera `build/asterion.apk` (cópia pronta em `dist/asterion.apk`) (assinatura de depuração, Android 7.0+, ARM64, OpenGL ES 3.0,
 sem permissões). Detalhes em [docs/ANDROID.md](docs/ANDROID.md).
 
 ## Regenerar a arte e o áudio
@@ -116,9 +126,10 @@ Após gerar texturas novas, rode `python3 tools/set_texture_imports.py` e reimpo
 scenes/main.tscn                Cena inicial
 scripts/main.gd                 Fluxo: título → prólogo → capítulo → fim; entrada e pausa
 scripts/autoload/               Game (estado, salvamento, configurações) e Audio
-scripts/world/                  Mundo, terreno, cenário, enigmas e interações
+scripts/world/                  Base comum, Capítulo I (world.gd), Vale do Rio (valley_world.gd),
+                                terreno, floresta 3D (forest.gd) e interações
 scripts/actors/                 Asterion, câmera, magia, Sombras e o Lume
-scripts/ui/                     HUD, toque, diálogos, menus e prólogo
+scripts/ui/                     HUD, toque, diálogos, menus, mapa, prólogo e lembrança
 shaders/                        Sprites com vento, chão pintado, água, véu, raios de luz, personagem
 assets/                         Sprites, texturas, fontes (OFL) e áudio (CC0)
 tools/art/                      Geradores de arte (Chromium/canvas) e pipeline de IA da personagem

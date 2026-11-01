@@ -9,9 +9,9 @@
   ],
   "char_height_px": 348,
   "animations": {
-    "idle": 8,
-    "walk": 8,
-    "run": 8,
+    "idle": 12,
+    "walk": 12,
+    "run": 10,
     "cast": 6,
     "jump": 4,
     "kneel": 6,

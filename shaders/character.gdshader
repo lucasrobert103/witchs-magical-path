@@ -9,6 +9,7 @@ uniform vec4 rim : source_color = vec4(1.0, 0.86, 0.6, 1.0);
 uniform float rim_amount = 0.1;
 uniform float flash = 0.0;
 uniform vec4 flash_color : source_color = vec4(1.0, 0.45, 0.4, 1.0);
+global uniform vec4 world_light;
 
 void vertex() {
 	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(
@@ -25,7 +26,8 @@ void fragment() {
 	// Thin warm rim where the alpha falls off (light from the canopy).
 	float edge = 1.0 - smoothstep(0.35, 0.95, c.a);
 	col += rim.rgb * edge * rim_amount;
-	col = mix(col, haze.rgb, haze_amount);
+	col = mix(col, haze.rgb * world_light.rgb, haze_amount);
+	col *= mix(vec3(1.0), world_light.rgb, 0.8);
 	ALBEDO = mix(col, flash_color.rgb, flash * 0.65);
 	ALPHA = c.a * tint.a;
 }

@@ -10,6 +10,7 @@ uniform float top_light = 0.0;
 uniform vec2 uv_scale = vec2(1.0);
 uniform vec2 uv_offset = vec2(0.0);
 varying float v_var;
+global uniform vec4 world_light;
 
 void vertex() {
 	vec3 origin = MODEL_MATRIX[3].xyz;
@@ -42,5 +43,5 @@ vec4 painted(vec2 uv) {
 	float g = smoothstep(0.0, ground_shade, 1.0 - uv.y);
 	col = mix(col * ground_color.rgb * 2.2, col, g);
 	col += vec3(1.0, 0.85, 0.55) * top_light * (1.0 - uv.y) * (1.0 - uv.y) * c.a;
-	return vec4(col, c.a * tint.a);
+	return vec4(col * world_light.rgb, c.a * tint.a);
 }

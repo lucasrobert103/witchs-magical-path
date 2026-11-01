@@ -172,20 +172,85 @@ func _initialize() -> void:
 	check(game.flag("altars_done"), "both altars awaken the gate")
 	await close_dialogue()
 	await wait(3.5)
-	# Walk through the gate.
-	var completed := [false]
-	w.chapter_completed.connect(func(_s): completed[0] = true)
+	# Walk through the gate: the memory plays, then the valley.
+	var crossed := [false]
+	w.portal_crossed.connect(func(): crossed[0] = true)
 	await go(Vector2(0, -64))
 	main.ui.touch.move = Vector2(0, 1)
 	w.cam_rig.snap_behind(Vector3(0, 0, -1))
 	await wait(2.5)
 	main.ui.touch.move = Vector2.ZERO
+	await close_dialogue()
+	check(crossed[0], "crossing the portal")
+	await wait(2.5)
+	check(main.state == "memory" and main.ui.memory.visible, "memory plays")
+	main.ui.memory.finish()
+	await wait(3.0)
+	w = main.world
+	check(w.has_method("begin_arrival"), "arrives in the valley")
+	for i in 40:
+		await close_dialogue()
+		await wait(0.5)
+		if w.mode == "play":
+			break
+	check(game.flag("v_arrived") and w.mode == "play", "arrival scene finishes")
+	# Explore: water, firm ground and light.
+	for key in ["water", "ground", "light"]:
+		var p: Vector2 = w.OBSERVE[key][0]
+		await go(p)
+		await wait(0.4)
+		await close_dialogue()
+	await wait(0.6)
+	await close_dialogue()
+	check(game.flag("v_clearing"), "finds the clearing")
+	for b in w.branches.slice(0, 5):
+		await go(Vector2(b.global_position.x, b.global_position.z) + Vector2(0.6, 0))
+		w.do_interact()
+		await wait(0.5)
+		await close_dialogue()
+	check(w.branch_count() == 5, "gathers five branches")
+	await go(w.SHELTER + Vector2(0, -2.4))
+	w.do_interact()
 	for i in 20:
+		await wait(0.5)
+		await close_dialogue()
+		if w.mode == "play":
+			break
+	check(game.flag("v_shelter"), "builds the shelter")
+	await go(w.PLANT + Vector2(1.0, 0))
+	w.do_interact()
+	for i in 10:
+		await wait(0.4)
+		await close_dialogue()
+	check(game.flag("v_seeds"), "gathers seeds")
+	for step in ["v_tilled", "v_sown"]:
+		await go(w.PLOT + Vector2(0, 1.6))
+		w.do_interact()
+		for i in 14:
+			await wait(0.4)
+			await close_dialogue()
+		check(game.flag(step), step)
+	await go(Vector2(8.8, -10.6))
+	w.do_interact()
+	for i in 14:
+		await wait(0.4)
+		await close_dialogue()
+	check(w.player.carrying == "water" and game.flag("v_water_learned"), "water follows her hand")
+	var completed := [false]
+	w.chapter_completed.connect(func(_s): completed[0] = true)
+	for r in 3:
+		await go(w.PLOT + Vector2(0, 1.6))
+		w.do_interact()
+		for i in 10:
+			await wait(0.4)
+			await close_dialogue()
+	check(game.flag("v_watered"), "waters all three rows")
+	for i in 60:
 		await close_dialogue()
 		await wait(0.5)
 		if completed[0]:
 			break
-	check(completed[0], "chapter completes after the gate")
+	check(completed[0], "first night ends the chapter")
 	check(game.has_save(), "progress saved")
 	print("story_smoke: %d failures" % failures)
 	quit(1 if failures else 0)

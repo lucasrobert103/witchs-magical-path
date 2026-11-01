@@ -2,7 +2,7 @@ class_name HUD
 extends Control
 ## Health/mana with the leaf emblem, sparks, objective, area titles, toasts and prompts.
 
-var world: World
+var world: BaseWorld
 var _bars: Bars
 var _sparks: Label
 var _objective: Label
@@ -17,6 +17,7 @@ var _prompt: Label
 var _toast_queue: Array = []
 var _toast_busy := false
 var _area_tween: Tween
+var _obj_tween: Tween
 
 class Bars extends Control:
 	var hp := 1.0
@@ -131,7 +132,7 @@ func _ready() -> void:
 	_prompt.position.y += 120
 	add_child(_prompt)
 
-func bind(w: World) -> void:
+func bind(w: BaseWorld) -> void:
 	world = w
 	w.objective_changed.connect(set_objective)
 	w.area_entered.connect(show_area)
@@ -160,8 +161,24 @@ func set_objective(text: String) -> void:
 	_objective_panel.visible = text != ""
 	UIKit.pin(_objective_panel, 0.5, 0.0, 0.0, 22.0)
 	if text != "":
-		_objective_panel.modulate = Color(1.4, 1.3, 1.0, 1.0)
-		create_tween().tween_property(_objective_panel, "modulate", Color.WHITE, 1.0)
+		# Shown briefly, then it fades: the world itself carries the clues.
+		if _obj_tween:
+			_obj_tween.kill()
+		_objective_panel.modulate = Color(1.4, 1.3, 1.0, 0.0)
+		_obj_tween = create_tween()
+		_obj_tween.tween_property(_objective_panel, "modulate", Color(1, 1, 1, 1), 0.8)
+		_obj_tween.tween_interval(6.0)
+		_obj_tween.tween_property(_objective_panel, "modulate:a", 0.0, 1.6)
+
+func show_objective_again() -> void:
+	if _objective.text == "":
+		return
+	if _obj_tween:
+		_obj_tween.kill()
+	_objective_panel.modulate = Color(1, 1, 1, 1)
+	_obj_tween = create_tween()
+	_obj_tween.tween_interval(4.0)
+	_obj_tween.tween_property(_objective_panel, "modulate:a", 0.0, 1.2)
 
 func show_area(title: String, sub: String) -> void:
 	_area_title.text = title

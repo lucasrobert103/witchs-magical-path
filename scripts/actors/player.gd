@@ -7,9 +7,9 @@ signal died
 signal footstep
 
 const SHEETS := {
-	"idle": {"frames": 8, "fps": 6.0, "loop": true},
-	"walk": {"frames": 8, "fps": 10.0, "loop": true},
-	"run": {"frames": 8, "fps": 13.0, "loop": true},
+	"idle": {"frames": 12, "fps": 6.0, "loop": true},
+	"walk": {"frames": 12, "fps": 14.0, "loop": true},
+	"run": {"frames": 10, "fps": 16.0, "loop": true},
 	"cast": {"frames": 6, "fps": 15.0, "loop": false},
 	"jump": {"frames": 4, "fps": 0.0, "loop": false},
 	"kneel": {"frames": 6, "fps": 4.0, "loop": false},
@@ -19,7 +19,7 @@ const PIXELS_PER_METER := 210.0
 const FRAME_H := 384
 const FOOT := 18
 const ROWS := 3  # front, side (facing right), back
-const WALK_SPEED := 3.3
+const WALK_SPEED := 3.0
 const RUN_SPEED := 6.2
 const GRAVITY := 24.0
 const JUMP_VELOCITY := 8.2
@@ -63,6 +63,14 @@ var shadow: MeshInstance3D
 var hand_glow: MeshInstance3D
 var _textures := {}
 var _mat: ShaderMaterial
+var ghost: Sprite3D            # previous view, cross-faded when Asterion turns
+var _ghost_mat: ShaderMaterial
+var _ghost_a := 0.0
+var _last_row := -1
+var _last_flip := false
+var look_target := Vector3.INF # set by the world when she pauses to observe
+var carrying := ""             # "water" while holding a ribbon of river water
+var water_orb: Node3D
 
 func _ready() -> void:
 	sprite = Sprite3D.new()
@@ -78,6 +86,30 @@ func _ready() -> void:
 	sprite.material_override = _mat
 	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(sprite)
+	ghost = Sprite3D.new()
+	ghost.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	ghost.shaded = false
+	ghost.double_sided = true
+	ghost.pixel_size = sprite.pixel_size
+	ghost.offset = sprite.offset
+	_ghost_mat = ShaderMaterial.new()
+	_ghost_mat.shader = _mat.shader
+	ghost.material_override = _ghost_mat
+	ghost.sorting_offset = -0.01
+	ghost.visible = false
+	add_child(ghost)
+	water_orb = Node3D.new()
+	water_orb.add_child(Props.glow(Color(0.45, 0.85, 1.0), 0.9, 1.0, "fx/soft_dot.png", 0.2))
+	water_orb.add_child(Props.glow(Color(0.85, 0.97, 1.0), 0.35, 1.2, "fx/soft_core.png"))
+	var drops := Props.particles("fx/soft_dot.png", 14, 0.7, 0.1, Color(0.6, 0.9, 1.0))
+	drops.emitting = true
+	drops.gravity = Vector3(0, -3, 0)
+	drops.spread = 180.0
+	drops.initial_velocity_min = 0.2
+	drops.initial_velocity_max = 0.6
+	water_orb.add_child(drops)
+	water_orb.visible = false
+	add_child(water_orb)
 	for key in SHEETS.keys():
 		_textures[key] = load("res://assets/sprites/witch/%s.png" % key)
 	shadow = Props.blob_shadow(1.1, 0.6)
@@ -102,6 +134,9 @@ func start_kneeling(hold: float) -> void:
 	_kneel_hold = hold
 	_set_anim("kneel")
 	anim_time = 0.0
+
+func stand_up() -> void:
+	_kneel_hold = 0.0
 
 func is_busy() -> bool:
 	return anim == "kneel" or dead
@@ -138,6 +173,13 @@ func request_cast() -> bool:
 	_cast_dir = facing
 	_set_anim("cast")
 	return true
+
+## Plays the casting gesture without releasing a bolt (everyday magic).
+func request_cast_visual() -> void:
+	_cast_timer = 0.42
+	_cast_fired = true
+	_cast_dir = facing
+	_set_anim("cast")
 
 func take_damage(amount: float, from: Vector3) -> void:
 	if _invuln > 0.0 or dead:
@@ -185,18 +227,36 @@ func tick(delta: float) -> void:
 	if _cast_timer > 0.0:
 		speed *= 0.35
 	var target_v := wish * speed
-	var accel := 22.0 if on_ground else 8.0
+	# Gentle acceleration, a little quicker to slow down: soft, natural steps.
+	var accel := 11.0 if target_v.length() > Vector3(vel.x, 0, vel.z).length() else 15.0
+	if not on_ground:
+		accel = 6.0
 	if _hurt_timer > 0.0:
 		accel = 2.0
 	var hv := Vector3(vel.x, 0, vel.z)
 	hv = hv.move_toward(target_v, accel * delta)
+	# Turning while moving bends the path instead of snapping it.
+	if hv.length() > 0.5 and target_v.length() > 0.5:
+		var turn := hv.signed_angle_to(target_v, Vector3.UP)
+		hv = hv.rotated(Vector3.UP, clampf(turn, -6.0 * delta, 6.0 * delta))
 	vel.x = hv.x
 	vel.z = hv.z
+	var face_to := Vector3.ZERO
 	if wish.length() > 0.08 and _cast_timer <= 0.0:
+		face_to = wish
+	elif look_target != Vector3.INF and can_move:
+		face_to = look_target - global_position
+		face_to.y = 0
+	if face_to.length() > 0.05:
 		var a0 := atan2(facing.x, facing.z)
-		var a1 := atan2(wish.x, wish.z)
-		var a := lerp_angle(a0, a1, clampf(delta * 12.0, 0.0, 1.0))
+		var a1 := atan2(face_to.x, face_to.z)
+		var rate := 7.0 if wish.length() > 0.08 else 2.2
+		var diff := angle_difference(a0, a1)
+		var a := a0 + clampf(diff, -rate * delta, rate * delta) * (0.6 + 0.4 * clampf(absf(diff), 0.0, 1.0))
 		facing = Vector3(sin(a), 0.0, cos(a))
+	water_orb.visible = carrying == "water"
+	if water_orb.visible:
+		water_orb.position = Vector3(0, 1.1 + sin(anim_time * 3.0) * 0.06, 0) + facing * 0.5
 
 	# Jumping with coyote time and input buffering.
 	if on_ground:
@@ -302,7 +362,7 @@ func _update_anim(delta: float, hspeed: float, running: bool) -> void:
 				f = int(anim_time * info["fps"])
 				f = f % n if info["loop"] else mini(f, n - 1)
 	_anim_frame = f
-	if (anim == "walk" or anim == "run") and (f == 2 or f == 6) and f != _last_step_frame:
+	if (anim == "walk" or anim == "run") and (f == 0 or f == n / 2) and f != _last_step_frame:
 		footstep.emit()
 		Audio.sfx("step%d" % (randi() % 4), -16.0 if anim == "walk" else -12.0, 0.12)
 	_last_step_frame = f
@@ -328,5 +388,20 @@ func _apply_direction() -> void:
 			row = 2
 		flip = ang < 0.0
 	_row = row
+	if (row != _last_row or flip != _last_flip) and _last_row != -1 and sprite.texture:
+		# Keep the previous view briefly and fade it out: turns read as smooth.
+		ghost.texture = sprite.texture
+		_ghost_mat.set_shader_parameter("tex", sprite.texture)
+		ghost.hframes = sprite.hframes
+		ghost.vframes = sprite.vframes
+		ghost.frame = sprite.frame
+		ghost.flip_h = sprite.flip_h
+		_ghost_a = 1.0
+	_last_row = row
+	_last_flip = flip
 	sprite.flip_h = flip
 	sprite.frame = row * int(SHEETS[anim]["frames"]) + _anim_frame
+	_ghost_a = maxf(0.0, _ghost_a - get_process_delta_time() * 7.0)
+	ghost.visible = _ghost_a > 0.01 and sprite.visible
+	_ghost_mat.set_shader_parameter("tint", Color(1.06, 1.05, 1.02, _ghost_a))
+	_mat.set_shader_parameter("tint", Color(1.06, 1.05, 1.02, 1.0 - _ghost_a * 0.5))
