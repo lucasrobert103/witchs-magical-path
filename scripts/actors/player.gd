@@ -219,7 +219,7 @@ func _spring_collider(c: SpringBoneCollision3D, bone: String, offset: Vector3, r
 
 const MATERIAL_STYLE := {
 	"skin": {"shade_tint": Color(0.8, 0.58, 0.54), "rim_amount": 0.38, "shade_soft": 0.08},
-	"face": {"shade_tint": Color(0.86, 0.68, 0.64), "shade_threshold": 0.24, "shade_soft": 0.16, "rim_amount": 0.25, "ao_amount": 0.25},
+	"face": {"shade_tint": Color(0.9, 0.74, 0.7), "shade_threshold": 0.14, "shade_soft": 0.2, "rim_amount": 0.22, "ao_amount": 0.2},
 	"hair_dark": {"spec_amount": 0.25, "shade_tint": Color(0.7, 0.6, 0.66), "rim_amount": 0.25, "detail": "hair", "detail_amount": 0.7},
 	"hair": {"spec_amount": 0.55, "spec_size": 0.1, "shade_tint": Color(0.66, 0.56, 0.62), "rim_amount": 0.4, "detail": "hair", "detail_amount": 0.9},
 	"hair_light": {"spec_amount": 0.65, "spec_size": 0.12, "shade_tint": Color(0.66, 0.56, 0.62), "rim_amount": 0.45, "detail": "hair", "detail_amount": 0.9},

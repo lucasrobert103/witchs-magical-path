@@ -985,36 +985,64 @@ def build_hand(side, skin, glove):
 # --------------------------------------------------------------------------------------
 # Cabeça anime
 # --------------------------------------------------------------------------------------
+HEAD_TOP = 0.118
+HEAD_BOT = -0.108
+# Contorno do rosto medido em metros a partir do centro da cabeça (altura -> valor).
+# Rosto oval anime: largura cheia até as maçãs do rosto, maxilar que só começa a curvar
+# abaixo da boca e queixo pequeno e arredondado (nada de "V").
+FACE_HALF_W = [  # meia-largura vista de frente
+    (0.118, 0.0), (0.112, 0.036), (0.10, 0.061), (0.08, 0.083), (0.055, 0.0945), (0.03, 0.099),
+    (0.0, 0.0985), (-0.02, 0.0962), (-0.04, 0.0905), (-0.055, 0.083), (-0.068, 0.0735),
+    (-0.08, 0.0605), (-0.09, 0.045), (-0.097, 0.033), (-0.102, 0.0235), (-0.105, 0.0155),
+    (-0.107, 0.0085), (-0.108, 0.0),
+]
+BACK_HALF_W = [  # meia-largura atrás das orelhas (desce para o pescoço)
+    (0.118, 0.0), (0.112, 0.038), (0.10, 0.064), (0.08, 0.086), (0.055, 0.099), (0.03, 0.102),
+    (0.0, 0.1), (-0.03, 0.093), (-0.06, 0.075), (-0.08, 0.058), (-0.095, 0.045), (-0.108, 0.03),
+]
+FRONT_DEPTH = [  # quanto o rosto avança (valor positivo = para frente, -Y)
+    (0.118, 0.0), (0.112, 0.04), (0.10, 0.066), (0.08, 0.087), (0.05, 0.098), (0.02, 0.1),
+    (0.0, 0.099), (-0.03, 0.098), (-0.055, 0.095), (-0.07, 0.092), (-0.085, 0.087),
+    (-0.096, 0.08), (-0.103, 0.07), (-0.107, 0.058), (-0.108, 0.045),
+]
+BACK_DEPTH = [  # nuca
+    (0.118, 0.0), (0.112, 0.05), (0.10, 0.082), (0.08, 0.102), (0.05, 0.114), (0.02, 0.118),
+    (0.0, 0.117), (-0.03, 0.108), (-0.055, 0.088), (-0.075, 0.062), (-0.09, 0.035),
+    (-0.1, 0.01), (-0.108, -0.02),
+]
+
+
+for _t in (FACE_HALF_W, BACK_HALF_W, FRONT_DEPTH, BACK_DEPTH):
+    _t.sort(key=lambda r: r[0])
+
+
 def head_deform(x, y, z):
     """Esfera unitária -> cabeça anime (metros, relativo ao centro da cabeça)."""
-    rx, ry = 0.097, 0.104
-    zn = z
-    # largura: crânio cheio, bochechas suaves e queixo arredondado
-    w = 1.0
-    if zn < -0.05:
-        k = min((-0.05 - zn) / 0.95, 1.0)
-        w = 1.0 - 0.08 * k - 0.56 * k ** 2.1
-    # bochechas levemente cheias na frente
-    if y < 0 and -0.75 < zn < 0.0:
-        w *= 1.0 + 0.035 * math.sin((zn + 0.75) / 0.75 * math.pi) * min(1.0, -y * 1.4)
-    X = x * rx * w
-    Y = y * ry
-    if zn < 0.0:
-        k = -zn
-        if y > 0:
-            Y = y * ry * (1.0 - 0.5 * k ** 1.4)
-        else:
-            Y = y * ry * (1.0 - 0.14 * k ** 1.5)
-    Z = zn * (0.118 if zn > 0 else 0.104)
-    if y < 0:
-        Y *= 0.93 + 0.07 * min(1.0, abs(zn) * 1.4)
-    # nariz pequeno
-    gx = math.exp(-(X / 0.0065) ** 2)
-    gz = math.exp(-((Z + 0.03) / 0.014) ** 2)
-    if y < -0.5:
-        Y -= 0.0055 * gx * gz
-    if y > 0 and zn > -0.25:
-        Y *= 1.05
+    Z = z * (HEAD_TOP if z > 0 else -HEAD_BOT)
+    r = math.sqrt(max(1e-9, 1.0 - z * z))
+    xn, yn = x / r, y / r            # direção no anel (cos/sen da longitude)
+    wf = catmull(FACE_HALF_W, Z)[0]
+    wb = catmull(BACK_HALF_W, Z)[0]
+    W = wf if yn <= 0 else lerp(wf, wb, yn * yn)
+    if yn <= 0:
+        D = -catmull(FRONT_DEPTH, Z)[0]
+        # bochechas cheias: seção em superelipse só na altura das bochechas
+        n = 2.0 + 0.3 * sstep(0.05, 0.0, Z) * sstep(-0.1, -0.06, Z)
+        e = 2.0 / n
+        X = math.copysign(abs(xn) ** e, xn) * W
+        Y = math.copysign(abs(yn) ** e, yn) * -D
+    else:
+        D = catmull(BACK_DEPTH, Z)[0]
+        X = xn * W
+        Y = yn * D
+    X *= r if z > 0.985 or z < -0.985 else 1.0
+    # nariz pequeno e lábios levemente projetados
+    if yn < -0.6:
+        gx = math.exp(-(X / 0.0065) ** 2)
+        Y -= 0.0055 * gx * math.exp(-((Z + 0.03) / 0.014) ** 2)
+        Y -= 0.0022 * math.exp(-(X / 0.016) ** 2) * math.exp(-((Z + 0.063) / 0.008) ** 2)
+        # leve apoio do queixo
+        Y -= 0.002 * math.exp(-(X / 0.02) ** 2) * math.exp(-((Z + 0.098) / 0.006) ** 2)
     return X, Y, Z
 
 
@@ -1043,11 +1071,10 @@ def build_head(skin_face_mat):
                 vi = min(vi, len(verts) - 1)
                 vx, vy, vz = verts[vi]
                 lx, ly, lz = vx - c0.x, vy - c0.y, vz - c0.z
+                u = 0.5 + lx / FACE_W
+                v = (lz - FACE_Z0) / FACE_H
                 if ly > 0.035:
-                    u, v = 0.02, 0.02
-                else:
-                    u = 0.5 + lx / FACE_W
-                    v = (lz - FACE_Z0) / FACE_H
+                    u = 0.5 + math.copysign(0.495, lx)   # borda lateral: só pele
                 u = min(max(u, 0.003), 0.997)
                 v = min(max(v, 0.003), 0.997)
                 q.append((u * 0.5, 0.5 + v * 0.5))   # quadro 0 do atlas (cima-esquerda)
