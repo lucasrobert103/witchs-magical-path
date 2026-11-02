@@ -1347,6 +1347,21 @@ def build_hair(mats, quality=1.0):
         ob = coil_lock("Cabelo - topo %03d" % i, path, pick_mat(), rt=0.011, rc=0.014, pitch=0.042,
                        phase=rng.uniform(0, 6.28), root_relax=0.03)
         place(ob)
+    # topete: volume cacheado que sobe da linha do cabelo e cai sobre a testa
+    for layer, (lift, n_l, el0) in enumerate(((0.05, 8, 1.3), (0.032, 9, 1.12))):
+        for k in range(n_l):
+            u = (k + 0.5) / n_l * 2 - 1                  # -1 .. 1 de um lado ao outro da testa
+            phi = math.pi - u * (0.95 if layer == 0 else 1.1) + rng.uniform(-0.04, 0.04)
+            phi = (phi + math.pi) % (2 * math.pi) - math.pi
+            el = el0 + rng.uniform(-0.06, 0.06) - 0.12 * abs(u)
+            p0 = cap_point(phi, el, 0.004)
+            peak = cap_point(phi, el - 0.32, lift + 0.01 * (1 - abs(u)))
+            end = cap_point(phi, max(0.58, el - 0.62) - 0.05 * abs(u), 0.018 + 0.012 * (1 - abs(u)))
+            ctrl1 = p0 + (peak - p0) * 0.9 + Vector((0, 0, 0.012))
+            path = [face_clear(q, 0.02) for q in bezier(p0, ctrl1, peak, end, 22)]
+            ob = coil_lock("Cabelo - topete %d %02d" % (layer, k), path, mats[2 if (k + layer) % 3 == 0 else 1],
+                           rt=0.0135, rc=0.016, pitch=0.045, phase=rng.uniform(0, 6.28), root_relax=0.025)
+            place(ob)
     # franja: cachos que caem sobre a testa e emolduram o rosto
     bangs = [
         # (phi raiz, el raiz, ponto final (x, y, z) relativo ao centro da cabeça)
@@ -1386,8 +1401,8 @@ def build_hair(mats, quality=1.0):
         ctrl2 = end + Vector((end.x * 0.3, -0.015, 0.05))
         path = [face_clear(q, 0.024) for q in bezier(p0, ctrl1, ctrl2, end, 24)]
         ob = coil_lock("Cabelo - franja %02d" % i, path, mats[1 if i % 3 else 2],
-                       rt=0.011 if i < 10 else 0.0095, rc=0.011 if (i < 4 or i >= 10) else 0.013,
-                       pitch=0.04 if i < 10 else 0.034, phase=rng.uniform(0, 6.28),
+                       rt=0.011 if i < 10 else 0.0115, rc=0.011 if i < 4 else 0.013,
+                       pitch=0.04 if i < 10 else 0.036, phase=rng.uniform(0, 6.28),
                        root_relax=0.04)
         place(ob)
     return objs
@@ -2154,7 +2169,7 @@ def assign_hair_weights(ob, bones):
     """Cada mecha segue a cabeça na raiz e as 2 correntes de ossos mais próximas no resto."""
     name = ob.name
     chains = {n: [b for b in bones if b.startswith(n) and b[len(n):].isdigit()] for n in HAIR_CHAINS}
-    rigid_head = "topo" in name or "base" in name
+    rigid_head = "topo" in name or "base" in name or "topete" in name
     if "franja" in name:
         idx = int(name.split()[-1])
         rigid_head = idx < 4 or idx >= 10
