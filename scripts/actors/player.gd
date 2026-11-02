@@ -1,29 +1,18 @@
 class_name Player
 extends Node3D
-## Asterion: movement, jumping, casting, damage and 8-direction sprite animation.
+## Asterion: movement, jumping, casting, damage and the rigged 3D model (cel-shaded).
 
 signal cast_requested(origin: Vector3, direction: Vector3)
 signal died
 signal footstep
 
-const SHEETS := {
-	"idle": {"frames": 12, "fps": 6.0, "loop": true},
-	"walk": {"frames": 12, "fps": 14.0, "loop": true},
-	"run": {"frames": 10, "fps": 17.0, "loop": true},
-	"sigh": {"frames": 12, "fps": 8.0, "loop": false},
-	"wind": {"frames": 12, "fps": 9.0, "loop": false},
-	"shift": {"frames": 12, "fps": 6.0, "loop": false},
-	"cast": {"frames": 6, "fps": 15.0, "loop": false},
-	"jump": {"frames": 4, "fps": 0.0, "loop": false},
-	"kneel": {"frames": 6, "fps": 4.0, "loop": false},
-	"hurt": {"frames": 1, "fps": 0.0, "loop": false},
-}
-const PIXELS_PER_METER := 210.0
-const FRAME_H := 384
-const FOOT := 18
-const ROWS := 3  # front, side (facing right), back
-const WALK_SPEED := 2.7
-const RUN_SPEED := 6.0
+const MODEL_PATH := "res://assets/characters/asterion/asterion.glb"
+const CLIP_INFO_PATH := "res://assets/characters/asterion/asterion_clips.json"
+## Game state -> animation clip in the model (idle reactions keep their old names).
+const CLIP_OF := {"wind": "look"}
+const LOOPING := ["idle", "walk", "run", "fall"]
+const WALK_SPEED := 2.0
+const RUN_SPEED := 5.4
 const IDLE_VARIANTS := ["sigh", "wind", "shift"]
 const GRAVITY := 24.0
 const JUMP_VELOCITY := 8.2
@@ -51,7 +40,6 @@ var essence := ""               # "", "moon", "flame"
 
 var anim := "idle"
 var anim_time := 0.0
-var _anim_frame := 0
 var _cast_timer := 0.0
 var _cast_fired := false
 var _cast_dir := Vector3.FORWARD
@@ -62,56 +50,36 @@ var _jump_buffer := 0.0
 var _mana_delay := 0.0
 var _kneel_hold := 0.0
 var _kneel_in := 0.0          # >0 while lowering herself (kneel frames played backwards)
-var _last_step_frame := -1
+var _last_phase := 0.0
 var dead := false
-var _row := 2
-var _cycle := 0.0              # walk/run phase, continuous across speed changes
 var _lean := 0.0
 var _squash := 1.0
 var _squash_v := 0.0
 var _heading := 0.0
 var dust: CPUParticles3D
 
-var sprite: Sprite3D
+var model: Node3D
+var anim_player: AnimationPlayer
+var skeleton: Skeleton3D
+var body_mesh: MeshInstance3D
 var shadow: MeshInstance3D
 var hand_glow: MeshInstance3D
-var _textures := {}
-var _mat: ShaderMaterial
-var ghost: Sprite3D            # previous view, cross-faded when Asterion turns
-var _ghost_mat: ShaderMaterial
-var _ghost_a := 0.0
-var _last_row := -1
-var _last_flip := false
+var _mats: Array[ShaderMaterial] = []
+var _outlines: Array[ShaderMaterial] = []
+var _face_mat: ShaderMaterial
+var _clip := ""
+var _clip_speed := {"walk": 1.6, "run": 4.7}
+var _kneel_phase := ""          # "down", "hold", "up"
+var _blink_t := 2.0
+var _expr := "neutral"
+var _expr_t := 0.0
+var _yaw := 0.0
 var look_target := Vector3.INF # set by the world when she pauses to observe
 var carrying := ""             # "water" while holding a ribbon of river water
 var water_orb: Node3D
 
 func _ready() -> void:
-	sprite = Sprite3D.new()
-	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
-	sprite.shaded = false
-	sprite.double_sided = true
-	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_OPAQUE_PREPASS
-	sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	sprite.pixel_size = 1.0 / PIXELS_PER_METER
-	sprite.offset = Vector2(0, FRAME_H * 0.5 - FOOT)
-	_mat = ShaderMaterial.new()
-	_mat.shader = load("res://shaders/character.gdshader")
-	sprite.material_override = _mat
-	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(sprite)
-	ghost = Sprite3D.new()
-	ghost.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
-	ghost.shaded = false
-	ghost.double_sided = true
-	ghost.pixel_size = sprite.pixel_size
-	ghost.offset = sprite.offset
-	_ghost_mat = ShaderMaterial.new()
-	_ghost_mat.shader = _mat.shader
-	ghost.material_override = _ghost_mat
-	ghost.sorting_offset = -0.01
-	ghost.visible = false
-	add_child(ghost)
+	_build_model()
 	water_orb = Node3D.new()
 	water_orb.add_child(Props.glow(Color(0.45, 0.85, 1.0), 0.9, 1.0, "fx/soft_dot.png", 0.2))
 	water_orb.add_child(Props.glow(Color(0.85, 0.97, 1.0), 0.35, 1.2, "fx/soft_core.png"))
@@ -135,14 +103,121 @@ func _ready() -> void:
 	dust.scale_amount_max = 1.2
 	dust.emitting = false
 	add_child(dust)
-	for key in SHEETS.keys():
-		_textures[key] = load("res://assets/sprites/witch/%s.png" % key)
 	shadow = Props.blob_shadow(1.1, 0.6)
 	add_child(shadow)
 	hand_glow = Props.glow(Color(1.0, 0.9, 0.6), 0.9, 0.0)
-	hand_glow.position = Vector3(0, 1.15, 0)
-	add_child(hand_glow)
+	# The glow lives in her right hand (it follows the casting gesture).
+	var hand := BoneAttachment3D.new()
+	hand.bone_name = "RightHand"
+	skeleton.add_child(hand)
+	hand.add_child(hand_glow)
+	hand_glow.position = Vector3(0, 0.1, 0)
+	Game.settings_changed.connect(_apply_quality)
+	_apply_quality()
 	_set_anim("idle")
+
+## Loads the rigged model, gives every surface the cel shader and sets the clips up.
+func _build_model() -> void:
+	var ps: PackedScene = load(MODEL_PATH)
+	model = ps.instantiate()
+	add_child(model)
+	anim_player = model.find_child("AnimationPlayer", true, false)
+	skeleton = model.find_child("Skeleton3D", true, false)
+	body_mesh = model.find_children("*", "MeshInstance3D", true, false)[0]
+	body_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if FileAccess.file_exists(CLIP_INFO_PATH):
+		var info = JSON.parse_string(FileAccess.get_file_as_string(CLIP_INFO_PATH))
+		if typeof(info) == TYPE_DICTIONARY:
+			for k in info.keys():
+				if typeof(info[k]) == TYPE_DICTIONARY and info[k].has("speed"):
+					_clip_speed[k] = float(info[k]["speed"])
+	for clip in anim_player.get_animation_list():
+		var a := anim_player.get_animation(clip)
+		a.loop_mode = Animation.LOOP_LINEAR if clip in LOOPING else Animation.LOOP_NONE
+	anim_player.playback_default_blend_time = 0.18
+	var toon: Shader = load("res://shaders/toon.gdshader")
+	var toon2: Shader = load("res://shaders/toon_double.gdshader")
+	var outline: Shader = load("res://shaders/toon_outline.gdshader")
+	var mesh := body_mesh.mesh
+	for i in mesh.get_surface_count():
+		var src := mesh.surface_get_material(i) as BaseMaterial3D
+		var key := src.resource_name if src else ""
+		var style: Dictionary = MATERIAL_STYLE.get(key, {})
+		var m := ShaderMaterial.new()
+		m.shader = toon2 if src and src.cull_mode == BaseMaterial3D.CULL_DISABLED else toon
+		m.set_shader_parameter("albedo", src.albedo_color if src else Color.WHITE)
+		if src and src.albedo_texture:
+			m.set_shader_parameter("tex", src.albedo_texture)
+			m.set_shader_parameter("use_tex", true)
+		for p in style.keys():
+			if p == "detail":
+				m.set_shader_parameter("detail", load("res://assets/characters/asterion/detail_%s.png" % style[p]))
+			else:
+				m.set_shader_parameter(p, style[p])
+		if key == "face":
+			_face_mat = m
+		var o := ShaderMaterial.new()
+		o.shader = outline
+		o.set_shader_parameter("width", 0.0028 if key.begins_with("hair") else 0.0042)
+		o.set_shader_parameter("color", OUTLINE_COLOR.get(key, Color(0.16, 0.08, 0.06)))
+		_outlines.append(o)
+		m.next_pass = o
+		body_mesh.set_surface_override_material(i, m)
+		_mats.append(m)
+
+const MATERIAL_STYLE := {
+	"skin": {"shade_tint": Color(0.8, 0.58, 0.54), "rim_amount": 0.38, "shade_soft": 0.08},
+	"face": {"shade_tint": Color(0.86, 0.68, 0.64), "shade_threshold": 0.24, "shade_soft": 0.16, "rim_amount": 0.25, "ao_amount": 0.25},
+	"hair_dark": {"spec_amount": 0.25, "shade_tint": Color(0.7, 0.6, 0.66), "rim_amount": 0.25, "detail": "hair", "detail_amount": 0.7},
+	"hair": {"spec_amount": 0.55, "spec_size": 0.1, "shade_tint": Color(0.66, 0.56, 0.62), "rim_amount": 0.4, "detail": "hair", "detail_amount": 0.9},
+	"hair_light": {"spec_amount": 0.65, "spec_size": 0.12, "shade_tint": Color(0.66, 0.56, 0.62), "rim_amount": 0.45, "detail": "hair", "detail_amount": 0.9},
+	"cloth_green": {"shade_tint": Color(0.6, 0.58, 0.6), "detail": "cloth", "detail_amount": 0.8},
+	"cloth_dark": {"shade_tint": Color(0.62, 0.6, 0.62), "detail": "cloth", "detail_amount": 0.8},
+	"trim": {"spec_amount": 0.4, "shade_tint": Color(0.66, 0.6, 0.62)},
+	"leather": {"spec_amount": 0.3, "shade_tint": Color(0.66, 0.56, 0.58), "detail": "leather", "detail_amount": 1.0},
+	"leather_dark": {"spec_amount": 0.22, "shade_tint": Color(0.66, 0.56, 0.58), "detail": "leather", "detail_amount": 0.8, "detail_scale": Vector2(3, 3)},
+	"sole": {"detail": "leather", "detail_amount": 0.6},
+	"bronze": {"spec_amount": 1.1, "spec_size": 0.22, "shade_tint": Color(0.6, 0.5, 0.45), "ao_amount": 0.5},
+}
+const OUTLINE_COLOR := {
+	"skin": Color(0.26, 0.12, 0.08), "face": Color(0.26, 0.12, 0.08),
+	"hair": Color(0.06, 0.03, 0.02), "hair_dark": Color(0.05, 0.025, 0.02), "hair_light": Color(0.07, 0.035, 0.025),
+	"cloth_green": Color(0.05, 0.11, 0.08), "cloth_dark": Color(0.03, 0.07, 0.05),
+}
+
+## "Leve" quality drops the outline pass (half the vertex work on weak phones).
+func _apply_quality() -> void:
+	var pretty := int(Game.settings.get("quality", 1)) >= 1
+	for i in _mats.size():
+		_mats[i].next_pass = _outlines[i] if pretty else null
+
+## Face expressions live in a 2x2 atlas: neutral, blink, happy, surprised.
+func set_expression(name: String, seconds := 2.5) -> void:
+	_expr = name
+	_expr_t = seconds
+
+func _update_face(delta: float) -> void:
+	if _face_mat == null:
+		return
+	_expr_t -= delta
+	if _expr_t <= 0.0:
+		_expr = "neutral"
+	_blink_t -= delta
+	var tile := Vector2.ZERO
+	match _expr:
+		"happy":
+			tile = Vector2(0.0, 0.5)
+		"surprised":
+			tile = Vector2(0.5, 0.5)
+	if _blink_t < 0.0 or anim == "hurt":
+		tile = Vector2(0.5, 0.0)
+		if _blink_t < -0.11:
+			_blink_t = randf_range(2.2, 5.5)
+	_face_mat.set_shader_parameter("uv_offset", tile)
+
+func _set_flash(v: float) -> void:
+	for m in _mats:
+		m.set_shader_parameter("flash", v)
 
 func reset_state(full := true) -> void:
 	vel = Vector3.ZERO
@@ -189,14 +264,25 @@ func is_busy() -> bool:
 	return anim == "kneel" or dead
 
 func _set_anim(name: String) -> void:
-	if anim == name and sprite.texture == _textures[name]:
+	if anim == name and _clip != "":
 		return
 	anim = name
 	anim_time = 0.0
-	sprite.texture = _textures[name]
-	_mat.set_shader_parameter("tex", _textures[name])
-	sprite.hframes = SHEETS[name]["frames"]
-	sprite.vframes = ROWS
+	_kneel_phase = ""
+	if name == "kneel":
+		return   # _update_kneel starts the clip
+	_play(CLIP_OF.get(name, name))
+
+func _play(clip: String, blend := -1.0, phase := -1.0) -> void:
+	if anim_player == null or not anim_player.has_animation(clip):
+		return
+	if clip == _clip and anim_player.is_playing() and phase < 0.0:
+		return
+	_clip = clip
+	anim_player.speed_scale = 1.0
+	anim_player.play(clip, blend)
+	if phase >= 0.0:
+		anim_player.seek(phase * anim_player.current_animation_length, true)
 
 func request_jump() -> void:
 	_jump_buffer = 0.15
@@ -258,8 +344,9 @@ func tick(delta: float) -> void:
 	_mana_delay = maxf(0.0, _mana_delay - delta)
 	if magic_unlocked and _mana_delay <= 0.0:
 		mana = minf(max_mana, mana + 7.0 * delta)
-	sprite.visible = _invuln <= 0.6 or int(_invuln * 14.0) % 2 == 0 or dead
-	_mat.set_shader_parameter("flash", clampf(_hurt_timer / 0.35, 0.0, 1.0))
+	model.visible = _invuln <= 0.6 or int(_invuln * 14.0) % 2 == 0 or dead
+	_set_flash(clampf(_hurt_timer / 0.35, 0.0, 1.0))
+	_update_face(delta)
 
 	var can_move := control_enabled and not dead and anim != "kneel" and _hurt_timer <= 0.0
 	# Desired horizontal velocity from input relative to the camera.
@@ -370,28 +457,19 @@ func tick(delta: float) -> void:
 		glow_target = 0.0
 	glow_mat.set_shader_parameter("energy", lerpf(float(glow_mat.get_shader_parameter("energy")), glow_target, clampf(delta * 10.0, 0.0, 1.0)))
 	glow_mat.set_shader_parameter("color", essence_color())
-	hand_glow.position = Vector3(0, 1.15, 0) + facing * 0.45
 
 	# Procedural polish: lean into turns, squash and stretch, dust when running.
 	var hsp := Vector2(vel.x, vel.z).length()
 	var heading := atan2(vel.x, vel.z)
 	var turn_rate := angle_difference(_heading, heading) / maxf(delta, 0.001) if hsp > 1.0 else 0.0
 	_heading = heading
-	var cam := get_viewport().get_camera_3d()
-	var side_sign := 1.0
-	if cam:
-		# Shear toward the inside of the turn as seen by the camera.
-		side_sign = signf(cam.global_transform.basis.z.dot(Vector3(vel.x, 0, vel.z).normalized()) + 0.001)
-	var want_lean := clampf(-turn_rate * 0.018 * clampf(hsp / RUN_SPEED, 0.0, 1.0), -0.12, 0.12) * side_sign
+	# Lean into the turn (she tilts toward the inside of the curve).
+	var want_lean := clampf(-turn_rate * 0.03 * clampf(hsp / RUN_SPEED, 0.0, 1.0), -0.16, 0.16)
 	_lean = lerpf(_lean, want_lean, clampf(delta * 6.0, 0.0, 1.0))
 	_squash_v += ((1.0 - _squash) * 140.0 - _squash_v * 14.0) * delta
 	_squash += _squash_v * delta
 	if not on_ground:
 		_squash = lerpf(_squash, 1.0 + clampf(vel.y * 0.008, -0.04, 0.05), clampf(delta * 8.0, 0.0, 1.0))
-	_mat.set_shader_parameter("lean", _lean)
-	_mat.set_shader_parameter("squash", _squash)
-	_ghost_mat.set_shader_parameter("lean", _lean)
-	_ghost_mat.set_shader_parameter("squash", _squash)
 	dust.emitting = on_ground and hsp > WALK_SPEED + 1.0
 	dust.global_position = global_position + Vector3(0, 0.08, 0)
 	if on_ground and hsp > 4.0 and absf(turn_rate) > 5.0 and randf() < 0.2:
@@ -422,92 +500,88 @@ func _update_anim(delta: float, hspeed: float, running: bool) -> void:
 	if dead:
 		want = "hurt"
 	elif anim == "kneel":
-		if _kneel_in > 0.0:
-			_kneel_in -= delta
-			anim_time = 0.0
-		elif _kneel_hold > 0.0:
-			_kneel_hold -= delta
-			anim_time = 0.0
-		elif anim_time * SHEETS["kneel"]["fps"] >= SHEETS["kneel"]["frames"] + 0.5:
+		_update_kneel(delta)
+		if _kneel_phase == "done":
 			want = "idle"
 	elif anim in IDLE_VARIANTS and hspeed < 0.3 and on_ground and _hurt_timer <= 0.0 and _cast_timer <= 0.0 and move_input.length() < 0.05:
-		if anim_time * SHEETS[anim]["fps"] >= SHEETS[anim]["frames"]:
+		if not anim_player.is_playing() or anim_player.current_animation_position >= anim_player.current_animation_length - 0.05:
 			want = "idle"
 	elif _hurt_timer > 0.0:
 		want = "hurt"
 	elif _cast_timer > 0.0:
 		want = "cast"
 	elif not on_ground:
-		want = "jump"
+		want = "jump" if vel.y > 1.5 and anim != "fall" else "fall"
 	elif hspeed > 0.3:
 		want = "run" if (running and hspeed > WALK_SPEED + 0.4) else "walk"
 	else:
 		want = "idle"
 	if want != anim:
-		_set_anim(want)
-	var info: Dictionary = SHEETS[anim]
-	var n: int = info["frames"]
-	var f := 0
-	match anim:
-		"jump":
-			f = 0 if vel.y > 2.5 else (1 if vel.y > -1.5 else 2)
-		"walk":
-			# Phase is kept in whole cycles so walk ↔ run blends without skipping a step.
-			_cycle = fposmod(_cycle + delta * info["fps"] / n * clampf(hspeed / WALK_SPEED, 0.5, 1.5), 1.0)
-			f = int(_cycle * n) % n
-		"run":
-			_cycle = fposmod(_cycle + delta * info["fps"] / n * clampf(hspeed / RUN_SPEED, 0.7, 1.2), 1.0)
-			f = int(_cycle * n) % n
-		"kneel":
-			if _kneel_in > 0.0:
-				f = clampi(int(_kneel_in / 0.5 * (n - 1)), 0, n - 1)
-			else:
-				f = mini(int(anim_time * info["fps"]), n - 1)
-		_:
-			if info["fps"] > 0.0:
-				f = int(anim_time * info["fps"])
-				f = f % n if info["loop"] else mini(f, n - 1)
-	_anim_frame = f
-	if (anim == "walk" or anim == "run") and (f == 0 or f == n / 2) and f != _last_step_frame:
-		footstep.emit()
-		Audio.sfx("step%d" % (randi() % 4), -16.0 if anim == "walk" else -12.0, 0.12)
-	_last_step_frame = f
-	_apply_direction()
+		var from_loco := anim == "walk" or anim == "run"
+		var phase := _phase()
+		anim = want
+		anim_time = 0.0
+		_kneel_phase = ""
+		var blend := 0.18
+		match want:
+			"walk", "run":
+				blend = 0.22
+			"idle":
+				blend = 0.3
+			"hurt", "cast":
+				blend = 0.08
+			"jump":
+				blend = 0.1
+			"fall":
+				blend = 0.25
+		# Keep the step phase when switching walk <-> run so no foot skips.
+		var keep := from_loco and (want == "walk" or want == "run")
+		_play(CLIP_OF.get(want, want), blend, phase if keep else -1.0)
+	# Locomotion plays at the speed she really moves, so the feet stay planted.
+	if anim == "walk" or anim == "run":
+		var natural: float = _clip_speed.get(anim, 1.6)
+		anim_player.speed_scale = clampf(hspeed / natural, 0.55, 1.6)
+		var ph := _phase()
+		if (ph < _last_phase and _last_phase - ph > 0.5) or (_last_phase < 0.5 and ph >= 0.5):
+			footstep.emit()
+			Audio.sfx("step%d" % (randi() % 4), -16.0 if anim == "walk" else -12.0, 0.12)
+		_last_phase = ph
+	elif anim != "kneel":
+		anim_player.speed_scale = 1.0
+	_apply_model(delta)
 
-## Picks one of the five drawn directions (mirrored for the other side).
-func _apply_direction() -> void:
-	var cam := get_viewport().get_camera_3d()
-	var row := 2
-	var flip := false
-	if cam:
-		var local := cam.global_transform.basis.inverse() * facing
-		var ang := rad_to_deg(atan2(local.x, local.z))  # 0 = toward camera
-		var a := absf(ang)
-		# Hysteresis avoids flickering between views near the boundaries.
-		var lo := 50.0 if _row == 0 else 40.0
-		var hi := 130.0 if _row == 2 else 140.0
-		if a < lo:
-			row = 0
-		elif a < hi:
-			row = 1
-		else:
-			row = 2
-		flip = ang < 0.0
-	_row = row
-	if (row != _last_row or flip != _last_flip) and _last_row != -1 and sprite.texture:
-		# Keep the previous view briefly and fade it out: turns read as smooth.
-		ghost.texture = sprite.texture
-		_ghost_mat.set_shader_parameter("tex", sprite.texture)
-		ghost.hframes = sprite.hframes
-		ghost.vframes = sprite.vframes
-		ghost.frame = sprite.frame
-		ghost.flip_h = sprite.flip_h
-		_ghost_a = 1.0
-	_last_row = row
-	_last_flip = flip
-	sprite.flip_h = flip
-	sprite.frame = row * int(SHEETS[anim]["frames"]) + _anim_frame
-	_ghost_a = maxf(0.0, _ghost_a - get_process_delta_time() * 7.0)
-	ghost.visible = _ghost_a > 0.01 and sprite.visible
-	_ghost_mat.set_shader_parameter("tint", Color(1.06, 1.05, 1.02, _ghost_a))
-	_mat.set_shader_parameter("tint", Color(1.06, 1.05, 1.02, 1.0 - _ghost_a * 0.5))
+func _phase() -> float:
+	if anim_player == null or anim_player.current_animation_length <= 0.0:
+		return 0.0
+	return fposmod(anim_player.current_animation_position / anim_player.current_animation_length, 1.0)
+
+## Kneeling: lower herself, hold while the world needs her down, then stand back up.
+func _update_kneel(delta: float) -> void:
+	match _kneel_phase:
+		"":
+			_kneel_phase = "down"
+			_clip = ""
+			_play("kneel", 0.15)
+			anim_player.speed_scale = 1.0 if _kneel_in > 0.0 else 2.2
+		"down":
+			if not anim_player.is_playing() or anim_player.current_animation_position >= anim_player.current_animation_length - 0.01:
+				_kneel_phase = "hold"
+				anim_player.speed_scale = 1.0
+		"hold":
+			_kneel_hold -= delta
+			if _kneel_hold <= 0.0:
+				_kneel_phase = "up"
+				anim_player.speed_scale = 1.3
+				anim_player.play_backwards("kneel", 0.0)
+		"up":
+			if not anim_player.is_playing() or anim_player.current_animation_position <= 0.02:
+				_kneel_phase = "done"
+				anim_player.speed_scale = 1.0
+
+## Turns the model toward where she faces and adds the lean / squash polish.
+func _apply_model(delta: float) -> void:
+	var target_yaw := atan2(facing.x, facing.z)
+	_yaw = lerp_angle(_yaw, target_yaw, clampf(delta * 14.0, 0.0, 1.0))
+	var b := Basis(Vector3.UP, _yaw) * Basis(Vector3(0, 0, 1), _lean)
+	var sq := clampf(_squash, 0.6, 1.4)
+	model.transform = Transform3D(b.scaled_local(Vector3(1.0 / sqrt(sq), sq, 1.0 / sqrt(sq))), Vector3.ZERO)

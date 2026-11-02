@@ -1,0 +1,16 @@
+{
+ "idle": {
+  "loop": true
+ },
+ "fall": {
+  "loop": true
+ },
+ "walk": {
+  "loop": true,
+  "speed": 1.6283524904214561
+ },
+ "run": {
+  "loop": true,
+  "speed": 4.741379310344828
+ }
+}

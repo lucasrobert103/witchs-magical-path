@@ -33,6 +33,8 @@
 ## Pendências
 
 - Personalidade e voz de Asterion em mais profundidade; próximos capítulos.
-- Vistas ¾ dedicadas da personagem (hoje: frente, perfil e costas da ficha) e mais poses
-  (por exemplo, braço erguido ao lançar magia).
+- Modelo 3D da Asterion: hoje é gerado por script (`tools/blender/asterion_blender.py`).
+  Um modelo esculpido à mão (Blender/VRoid) pode substituí-lo mantendo os mesmos nomes de
+  ossos e de animações — o jogo não precisa mudar.
+- O retrato dos diálogos e o ícone ainda vêm da arte 2D da ficha.
 - Teste e ajuste fino de desempenho em aparelhos físicos.

@@ -38,7 +38,7 @@ func _initialize() -> void:
 	main.ui.touch.move = Vector2(0, 1)
 	await wait(1.2)
 	var walk := Vector2(p.vel.x, p.vel.z).length()
-	check(walk > 2.2 and walk < 3.2, "walks at a natural pace (%.1f m/s)" % walk)
+	check(walk > 1.7 and walk < 2.4, "walks at a natural pace (%.1f m/s)" % walk)
 	main.ui.touch.move = Vector2(0, 0.3)
 	await wait(1.0)
 	var slow := Vector2(p.vel.x, p.vel.z).length()

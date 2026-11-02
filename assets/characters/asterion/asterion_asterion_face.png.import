@@ -2,22 +2,23 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://45tl6fnhspei"
-path.s3tc="res://.godot/imported/shift.png-1a495eec72105cab5e2871bf8407240c.s3tc.ctex"
-path.etc2="res://.godot/imported/shift.png-1a495eec72105cab5e2871bf8407240c.etc2.ctex"
+uid="uid://bq8lwnaxgm2hj"
+path="res://.godot/imported/asterion_asterion_face.png-feb12e055da3d89b6bca64df4027e424.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc", "etc2_astc"],
-"vram_texture": true
+"vram_texture": false
+}
+generator_parameters={
+"md5": "0d00fba9f0f030cd86bc16beb8a7e79f"
 }
 
 [deps]
 
-source_file="res://assets/sprites/witch/shift.png"
-dest_files=["res://.godot/imported/shift.png-1a495eec72105cab5e2871bf8407240c.s3tc.ctex", "res://.godot/imported/shift.png-1a495eec72105cab5e2871bf8407240c.etc2.ctex"]
+source_file="res://assets/characters/asterion/asterion_asterion_face.png"
+dest_files=["res://.godot/imported/asterion_asterion_face.png-feb12e055da3d89b6bca64df4027e424.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -39,4 +40,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=0
+detect_3d/compress_to=1

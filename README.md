@@ -4,7 +4,7 @@
 
 Aventura de bruxa para **Android** (Godot 4.6.3 / GDScript) em estilo "HD‑2D" pintado:
 um mundo 3D enevoado de floresta outonal, com árvores, ruínas e efeitos pintados à mão por
-código, e a protagonista **Asterion** desenhada exatamente como na ficha de personagem.
+código, e a protagonista **Asterion** em 3D com esqueleto, fiel à ficha de personagem.
 
 | Título | Prólogo | Diálogo |
 | --- | --- | --- |
@@ -69,21 +69,36 @@ código, e a protagonista **Asterion** desenhada exatamente como na ficha de per
 
 ## A personagem
 
-Asterion vem diretamente da ficha enviada (`tools/art/ai/reference_sheet.jpg`):
+![Asterion 3D no jogo](docs/images/asterion_3d.png)
 
-1. Cada vista (frente, perfil, costas, busto ¾) é recortada da ficha;
-2. ampliada 4× com **Real‑ESRGAN x4plus_anime** (rede neural de super‑resolução para anime,
-   executada em numpy — `tools/art/ai/esrgan_numpy.py`);
-3. o fundo é removido com **ISNet‑anime** (segmentação por IA) e refinado/desfeito o halo;
-4. as animações usam um **esqueleto 2D**: cada vista é dividida em peças recortadas da própria
-   pintura — braço, antebraço com mão, coxa, canela com bota e corpo — que giram nas
-   articulações (ombro, cotovelo, quadril, joelho). Os espaços que um membro deixa ao se mover
-   são preenchidos com as cores ao redor, e por cima entram o balanço do quadril, a rotação do
-   tronco, a inclinação da cabeça e o atraso do cabelo e da saia
-   (`tools/art/ai/build_witch_sprites.py`). Assim ela continua idêntica à arte de referência.
+Asterion é um **modelo 3D anime (cel-shaded) com esqueleto**, gerado inteiramente por script no
+Blender a partir da ficha (`tools/blender/reference_model_sheet.png`):
 
-No jogo ela é um sprite com *billboard* em um mundo 3D, com shader próprio (sem névoa, leve
-contorno de luz) e 8 direções (frente, perfil espelhado e costas).
+- corpo contínuo, cabeça anime e rosto pintado em textura 2048 px: olhos âmbar com íris em
+  camadas e reflexos, delineado com asinha, cílios, sobrancelhas com fios, lábios, nariz e blush.
+  Há 4 expressões no mesmo atlas (neutra, piscando, feliz, surpresa) e ela pisca sozinha;
+- cabelo 3A até a cintura feito de cachos em espiral de verdade, com franja e mechas que
+  emolduram o rosto;
+- vestido, capa curta com capuz, mangas com bordado, corpete com amarração, ilhoses e rebites,
+  dois cintos com fivelas, bolsas, braçadeiras, luvas sem dedos e botas com cadarço;
+- 59 ossos (nomes do perfil humanoide do Godot) e correntes para cabelo, saia e capa;
+- animações: idle, walk, run, cast, jump, fall, kneel, sigh, look, shift e hurt. As pernas usam
+  IK (os pés não deslizam) e o balanço do cabelo, da saia e da capa é **simulado com molas** e
+  gravado nos quadros;
+- oclusão ambiente gravada nos vértices (dobras, sob a capa, entre os cachos).
+
+No jogo, `shaders/toon*.gdshader` faz o cel-shading com contorno anime, luz de recorte, trama do
+tecido, granulado do couro, fios do cabelo e forro mais escuro. As animações de andar e correr
+tocam na velocidade real do movimento.
+
+Para abrir no Blender (4.2 ou mais novo): **Scripting > Open > `tools/blender/asterion_blender.py`
+> Run Script**. Ele monta a cena, salva `asterion.blend` e exporta `asterion.glb` na mesma pasta.
+
+Para atualizar o modelo do jogo (`assets/characters/asterion/`):
+
+```bash
+BLENDER=/Applications/Blender.app/Contents/MacOS/Blender ./tools/blender/build_game_model.sh
+```
 
 ## Abrir, testar e exportar
 
@@ -128,10 +143,6 @@ cd tools/art && npm i --no-save playwright && node build_env.cjs
 ```
 
 ```bash
-python3 tools/art/ai/build_witch_sprites.py
-```
-
-```bash
 python3 tools/audio/generate_audio.py
 ```
 
@@ -148,9 +159,10 @@ scripts/world/                  Base comum, Capítulo I (world.gd), Vale do Rio 
                                 terreno, floresta 3D (forest.gd) e interações
 scripts/actors/                 Asterion, câmera, magia, Sombras e o Lume
 scripts/ui/                     HUD, toque, diálogos, menus, mapa, prólogo e lembrança
-shaders/                        Sprites com vento, chão pintado, água, véu, raios de luz, personagem
+shaders/                        Sprites com vento, chão pintado, água, véu, raios de luz, cel-shading
 assets/                         Sprites, texturas, fontes (OFL) e áudio (CC0)
-tools/art/                      Geradores de arte (Chromium/canvas) e pipeline de IA da personagem
+tools/art/                      Geradores de arte (Chromium/canvas) e retrato da personagem
+tools/blender/                  Modelo 3D, esqueleto e animações da Asterion (script do Blender)
 tools/audio/                    Síntese da trilha e dos efeitos
 tests/                          Testes automatizados
 ```

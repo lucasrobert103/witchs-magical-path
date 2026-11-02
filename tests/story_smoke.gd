@@ -179,7 +179,7 @@ func _initialize() -> void:
 	await go(Vector2(0, -64))
 	main.ui.touch.move = Vector2(0, 1)
 	w.cam_rig.snap_behind(Vector3(0, 0, -1))
-	await wait(2.5)
+	await wait(3.6)
 	main.ui.touch.move = Vector2.ZERO
 	await close_dialogue()
 	check(crossed[0], "crossing the portal")
