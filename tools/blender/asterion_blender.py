@@ -993,7 +993,7 @@ def head_deform(x, y, z):
     w = 1.0
     if zn < -0.05:
         k = min((-0.05 - zn) / 0.95, 1.0)
-        w = 1.0 - 0.06 * k - 0.52 * k ** 2.3
+        w = 1.0 - 0.08 * k - 0.56 * k ** 2.1
     # bochechas levemente cheias na frente
     if y < 0 and -0.75 < zn < 0.0:
         w *= 1.0 + 0.035 * math.sin((zn + 0.75) / 0.75 * math.pi) * min(1.0, -y * 1.4)
@@ -1160,20 +1160,21 @@ def lock_path(phi0, el0, z_end, layer=1.0, lift=0.012, drift=0.0, rng=None):
 
 def face_clear(p, margin=0.0):
     """Afasta o cabelo da área do rosto de forma suave (coordenadas relativas ao centro da cabeça).
-    Usa um 'clamp' suave (softplus) para não criar segmentos retos."""
+    A zona livre é só olhos, nariz e boca: as laterais do rosto ficam cobertas pelas mechas."""
     if p.y > 0.02:
         return p
     z = p.z
-    if z > -0.03:
-        lim = 0.09
+    if z > 0.01:
+        lim = 0.083                                  # olhos (a asinha vai até ~0.08)
+    elif z > -0.04:
+        lim = lerp(0.083, 0.07, sstep(0.01, -0.04, z))
     else:
-        lim = lerp(0.09, 0.066, sstep(-0.03, -0.15, z))
-    # topo da zona: logo acima das sobrancelhas
-    w = sstep(0.075, 0.045, z) * sstep(-0.19, -0.13, z) * sstep(0.02, -0.03, p.y)
+        lim = lerp(0.07, 0.05, sstep(-0.04, -0.11, z))
+    w = sstep(0.07, 0.045, z) * sstep(-0.16, -0.11, z) * sstep(0.02, -0.03, p.y)
     if w <= 0.0:
         return p
     lim = (lim + margin) * w
-    soft = 0.012
+    soft = 0.008
     ax = abs(p.x)
     k = (ax - lim) / soft
     nx = lim + soft * (math.log1p(math.exp(k)) if k < 30 else k)
@@ -1339,6 +1340,17 @@ def build_hair(mats, quality=1.0):
         phi = math.pi - lerp(-0.55, 0.55, k / 6) * 0.9
         phi = (phi + math.pi) % (2 * math.pi) - math.pi
         bangs.append((phi, 1.25 + rng.uniform(-0.08, 0.08), (x_end, -0.108 + 0.25 * x_end * x_end, z_end)))
+    # mechas laterais rentes ao rosto (cobrem têmporas e a lateral das bochechas)
+    for side in (-1, 1):
+        for j, (dy, z_end, dx) in enumerate(((-0.058, -0.19, 0.0), (-0.036, -0.24, 0.012), (-0.012, -0.28, 0.024))):
+            root = cap_point(side * (math.pi - 0.95 - 0.12 * j), 0.62 + 0.05 * j, 0.008)
+            top = Vector((side * (0.091 + dx * 0.5), dy, 0.03))
+            mid = Vector((side * (0.093 + dx), dy + 0.004, -0.08))
+            end = Vector((side * (0.1 + dx), dy + 0.01, z_end))
+            path = [face_clear(q, 0.012) for q in bezier(root, top, mid, end, 28)]
+            ob = coil_lock("Cabelo - lateral %d %d" % (side, j), path, mats[1 if j != 1 else 2],
+                           rt=0.0105, rc=0.011, pitch=0.04, phase=rng.uniform(0, 6.28), root_relax=0.05)
+            place(ob)
     for i, (phi, el, end) in enumerate(bangs):
         p0 = cap_point(phi, el, 0.01)
         end = Vector(end)
@@ -1942,19 +1954,44 @@ def build_model(hair_quality=1.0):
 # Nomes seguem o perfil humanoide do Godot (SkeletonProfileHumanoid) — dá para
 # redirecionar animações do Mixamo no Godot sem renomear nada.
 HAIR_CHAINS = {
-    # nome: (phi, raio do envelope, z inicial relativo à cabeça, z final, nº de ossos)
-    "HairBackC": (0.0, 0.95, -0.02, -0.56, 4),
-    "HairBackL": (0.75, 0.95, -0.02, -0.54, 4),
-    "HairBackR": (-0.75, 0.95, -0.02, -0.54, 4),
-    "HairSideL": (1.5, 0.95, -0.04, -0.46, 3),
-    "HairSideR": (-1.5, 0.95, -0.04, -0.46, 3),
-    "HairFrontL": (2.1, 1.0, -0.06, -0.32, 2),
-    "HairFrontR": (-2.1, 1.0, -0.06, -0.32, 2),
+    # nome: (phi inicial, phi final, raio do envelope, z inicial e final relativos à cabeça, nº de ossos)
+    "HairBackC": (0.0, 0.0, 0.95, -0.02, -0.56, 4),
+    "HairBackL": (0.48, 0.5, 0.95, -0.02, -0.55, 4),
+    "HairBackR": (-0.48, -0.5, 0.95, -0.02, -0.55, 4),
+    "HairBackLL": (0.95, 0.9, 0.95, -0.03, -0.52, 4),
+    "HairBackRR": (-0.95, -0.9, 0.95, -0.03, -0.52, 4),
+    "HairSideL": (1.4, 1.22, 0.97, -0.04, -0.46, 4),
+    "HairSideR": (-1.4, -1.22, 0.97, -0.04, -0.46, 4),
+    "HairFrontL": (1.85, 2.3, 1.0, -0.08, -0.32, 3),
+    "HairFrontR": (-1.85, -2.3, 1.0, -0.08, -0.32, 3),
+    "HairCheekL": None,
+    "HairCheekR": None,
 }
 SKIRT_CHAINS = {
     "SkirtFL": 0.45, "SkirtFR": -0.45, "SkirtSL": 1.55, "SkirtSR": -1.55, "SkirtBL": 2.55, "SkirtBR": -2.55,
 }
 CAPE_CHAINS = {"CapeL": 1.45, "CapeR": -1.45, "CapeB": 3.14159}
+
+
+def hair_chain_points():
+    """Pontos (relativos ao centro da cabeça) de cada corrente de ossos do cabelo."""
+    out = {}
+    for name, spec in HAIR_CHAINS.items():
+        if spec is None:
+            side = 1 if name.endswith("L") else -1
+            out[name] = [Vector((side * 0.095, -0.04, 0.0)), Vector((side * 0.098, -0.035, -0.08)),
+                         Vector((side * 0.104, -0.03, -0.16)), Vector((side * 0.11, -0.025, -0.25))]
+            continue
+        phi0, phi1, lay, z0, z1, n = spec
+        pts = []
+        for k in range(n + 1):
+            t = k / n
+            z = lerp(z0, z1, t)
+            phi = lerp(phi0, phi1, sstep(0.0, 1.0, t))
+            R = env_radius(z, phi) * lay * (0.92 if k == 0 else 1.0)
+            pts.append(Vector((math.sin(phi) * R, AXIS_Y + math.cos(phi) * R, z)))
+        out[name] = pts
+    return out
 
 
 def bone_specs():
@@ -1977,16 +2014,11 @@ def bone_specs():
         B.append((nm + "Foot", J["ankle" + side], J["toe" + side], nm + "LowerLeg"))
         B.append((nm + "Toes", J["toe" + side], J["toe_end" + side], nm + "Foot"))
     c0 = J["head_c"]
-    for name, (phi, lay, z0, z1, n) in HAIR_CHAINS.items():
-        pts = []
-        for k in range(n + 1):
-            z = lerp(z0, z1, k / n)
-            R = env_radius(z, phi) * lay * (0.92 if k == 0 else 1.0)
-            pts.append(c0 + Vector((math.sin(phi) * R, AXIS_Y + math.cos(phi) * R, z)))
+    for name, pts in hair_chain_points().items():
         parent = "Head"
-        for k in range(n):
+        for k in range(len(pts) - 1):
             bn = "%s%d" % (name, k + 1)
-            B.append((bn, pts[k], pts[k + 1], parent))
+            B.append((bn, c0 + pts[k], c0 + pts[k + 1], parent))
             parent = bn
     for name, af in SKIRT_CHAINS.items():
         pts = [Vector(skirt_point(t, af, skirt_hem, inflate=-0.01)) for t in (0.12, 0.55, 1.0)]
@@ -2055,7 +2087,7 @@ SKIN_RULES = {
     "skirt": dict({"Hips": 0.9}, **{n + k: 1.0 for n in SKIRT_CHAINS for k in "12"}),
     "cape": dict({"UpperChest": 1.0, "Neck": 0.5, "LeftShoulder": 0.8, "RightShoulder": 0.8,
                   "LeftUpperArm": 0.3, "RightUpperArm": 0.3}, **{n: 0.9 for n in CAPE_CHAINS}),
-    "hair": dict({"Head": 1.2}, **{"%s%d" % (n, k + 1): 1.0 for n, v in HAIR_CHAINS.items() for k in range(v[4])}),
+    "hair": {"Head": 1.2},     # mechas: ver assign_hair_weights
 }
 
 
@@ -2091,6 +2123,49 @@ def assign_weights(ob, rule, bones, rigid=False, power=4.0, top=3):
             vg.add([int(i)], float(col[i]), 'REPLACE')
 
 
+def assign_hair_weights(ob, bones):
+    """Cada mecha segue a cabeça na raiz e as 2 correntes de ossos mais próximas no resto."""
+    name = ob.name
+    chains = {n: [b for b in bones if b.startswith(n) and b[len(n):].isdigit()] for n in HAIR_CHAINS}
+    rigid_head = "topo" in name or "base" in name
+    if "franja" in name:
+        idx = int(name.split()[-1])
+        rigid_head = idx < 4 or idx >= 10
+    if rigid_head:
+        assign_weights(ob, {"Head": 1.0}, bones)
+        return
+    me = ob.data
+    co = np.zeros(len(me.vertices) * 3, np.float32)
+    me.vertices.foreach_get("co", co)
+    mw = np.array(ob.matrix_world)
+    P = co.reshape(-1, 3) @ mw[:3, :3].T + mw[:3, 3]
+    if "volume" in name:
+        rule = {"Head": 1.0}
+        for n in ("HairBackC", "HairBackL", "HairBackR", "HairBackLL", "HairBackRR", "HairSideL", "HairSideR"):
+            for b in chains[n]:
+                rule[b] = 1.0
+        assign_weights(ob, rule, bones, power=3.0, top=3)
+        return
+    tip = P[np.argmin(P[:, 2])]
+    mid = P.mean(axis=0)
+
+    def chain_dist(n):
+        best = 1e9
+        for b in chains[n]:
+            h, t = bones[b]
+            d1, _ = seg_dist(tip[None, :], h, t)
+            d2, _ = seg_dist(mid[None, :], h, t)
+            best = min(best, float(d1[0]) + 0.5 * float(d2[0]))
+        return best
+    order = sorted(HAIR_CHAINS, key=chain_dist)
+    rule = {"Head": 1.3}
+    for b in chains[order[0]]:
+        rule[b] = 1.0
+    for b in chains[order[1]]:
+        rule[b] = 0.45
+    assign_weights(ob, rule, bones, power=3.0, top=3)
+
+
 def apply_modifiers(ob):
     bpy.context.view_layer.objects.active = ob
     for m in list(ob.modifiers):
@@ -2120,7 +2195,7 @@ def skin_and_join(parts, arm_ob):
                 assign_weights(ob, rule, bones)
                 fix_neck(ob, bones)
             elif key == "hair":
-                assign_weights(ob, rule, bones, power=3.0, top=3)
+                assign_hair_weights(ob, bones)
             elif key == "skirt" and "Bordado" not in ob.name and "interna" not in ob.name:
                 assign_weights(ob, rule, bones, power=3.0)
             else:

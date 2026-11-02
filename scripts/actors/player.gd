@@ -67,6 +67,7 @@ var hand_glow: MeshInstance3D
 var _mats: Array[ShaderMaterial] = []
 var _outlines: Array[ShaderMaterial] = []
 var _face_mat: ShaderMaterial
+var hair_springs: SpringBoneSimulator3D
 var _clip := ""
 var _clip_speed := {"walk": 1.6, "run": 4.7}
 var _kneel_phase := ""          # "down", "hold", "up"
@@ -164,6 +165,57 @@ func _build_model() -> void:
 		m.next_pass = o
 		body_mesh.set_surface_override_material(i, m)
 		_mats.append(m)
+	_build_hair_springs()
+
+## Real hair physics: every hair bone chain is a spring that swings with her motion
+## (turning, stopping, jumping) and collides with her head, back and arms.
+func _build_hair_springs() -> void:
+	# The baked hair sway is replaced by the live simulation.
+	for clip in anim_player.get_animation_list():
+		var a := anim_player.get_animation(clip)
+		for t in range(a.get_track_count() - 1, -1, -1):
+			if str(a.track_get_path(t)).contains(":Hair"):
+				a.remove_track(t)
+	var chains := {}
+	for i in skeleton.get_bone_count():
+		var bn := skeleton.get_bone_name(i)
+		if bn.begins_with("Hair"):
+			var base := bn.rstrip("0123456789")
+			chains[base] = maxi(int(chains.get(base, 0)), int(bn.substr(base.length())))
+	hair_springs = SpringBoneSimulator3D.new()
+	hair_springs.name = "HairSprings"
+	skeleton.add_child(hair_springs)
+	hair_springs.setting_count = chains.size()
+	var k := 0
+	for base in chains.keys():
+		var near_face: bool = base.begins_with("HairCheek") or base.begins_with("HairFront")
+		hair_springs.set_root_bone_name(k, base + "1")
+		hair_springs.set_end_bone_name(k, "%s%d" % [base, chains[base]])
+		hair_springs.set_extend_end_bone(k, true)
+		hair_springs.set_end_bone_length(k, 0.08)
+		hair_springs.set_radius(k, 0.012 if base.begins_with("HairCheek") else 0.03)
+		hair_springs.set_stiffness(k, 4.0 if near_face else 3.0)
+		hair_springs.set_drag(k, 0.65)
+		hair_springs.set_gravity(k, 1.6)
+		hair_springs.set_gravity_direction(k, Vector3.DOWN)
+		hair_springs.set_enable_all_child_collisions(k, true)
+		k += 1
+	_spring_collider(SpringBoneCollisionSphere3D.new(), "Head", Vector3(0, 0.08, 0), 0.095)
+	var torso := SpringBoneCollisionCapsule3D.new()
+	torso.height = 0.55
+	_spring_collider(torso, "Chest", Vector3(0, 0.1, 0), 0.14)
+	for side in ["Left", "Right"]:
+		_spring_collider(SpringBoneCollisionSphere3D.new(), side + "UpperArm", Vector3(0, 0.06, 0), 0.065)
+		_spring_collider(SpringBoneCollisionSphere3D.new(), side + "Shoulder", Vector3(0, 0.08, 0), 0.07)
+
+func _spring_collider(c: SpringBoneCollision3D, bone: String, offset: Vector3, radius: float) -> void:
+	hair_springs.add_child(c)
+	c.bone_name = bone
+	c.position_offset = offset
+	if c is SpringBoneCollisionSphere3D:
+		(c as SpringBoneCollisionSphere3D).radius = radius
+	elif c is SpringBoneCollisionCapsule3D:
+		(c as SpringBoneCollisionCapsule3D).radius = radius
 
 const MATERIAL_STYLE := {
 	"skin": {"shade_tint": Color(0.8, 0.58, 0.54), "rim_amount": 0.38, "shade_soft": 0.08},
@@ -229,6 +281,8 @@ func reset_state(full := true) -> void:
 		hp = max_hp
 		mana = max_mana
 	_set_anim("idle")
+	if hair_springs:
+		hair_springs.reset()   # no whiplash after a respawn / teleport
 
 func start_kneeling(hold: float, smooth := false) -> void:
 	_kneel_hold = hold

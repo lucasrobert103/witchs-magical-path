@@ -77,14 +77,15 @@ Blender a partir da ficha (`tools/blender/reference_model_sheet.png`):
 - corpo contínuo, cabeça anime e rosto pintado em textura 2048 px: olhos âmbar com íris em
   camadas e reflexos, delineado com asinha, cílios, sobrancelhas com fios, lábios, nariz e blush.
   Há 4 expressões no mesmo atlas (neutra, piscando, feliz, surpresa) e ela pisca sozinha;
-- cabelo 3A até a cintura feito de cachos em espiral de verdade, com franja e mechas que
-  emolduram o rosto;
+- cabelo 3A até a cintura feito de cachos em espiral de verdade, com franja e mechas laterais
+  rentes ao rosto (cobrem têmporas e bochechas, como na ficha);
 - vestido, capa curta com capuz, mangas com bordado, corpete com amarração, ilhoses e rebites,
   dois cintos com fivelas, bolsas, braçadeiras, luvas sem dedos e botas com cadarço;
-- 59 ossos (nomes do perfil humanoide do Godot) e correntes para cabelo, saia e capa;
+- 77 ossos (nomes do perfil humanoide do Godot) e correntes para cabelo (11), saia e capa;
 - animações: idle, walk, run, cast, jump, fall, kneel, sigh, look, shift e hurt. As pernas usam
-  IK (os pés não deslizam) e o balanço do cabelo, da saia e da capa é **simulado com molas** e
-  gravado nos quadros;
+  IK (os pés não deslizam) e o balanço da saia e da capa é simulado com molas e gravado nos
+  quadros. O **cabelo tem física em tempo real** no jogo (`SpringBoneSimulator3D`): balança ao
+  correr, virar, pular e parar, e colide com cabeça, costas, ombros e braços;
 - oclusão ambiente gravada nos vértices (dobras, sob a capa, entre os cachos).
 
 No jogo, `shaders/toon*.gdshader` faz o cel-shading com contorno anime, luz de recorte, trama do
@@ -116,6 +117,10 @@ godot --headless --path . --script res://tests/story_smoke.gd
 
 ```bash
 godot --headless --path . --script res://tests/motion_smoke.gd
+```
+
+```bash
+godot --headless --path . --script res://tests/hair_physics.gd
 ```
 
 O `story_smoke` joga os dois capítulos pelos sistemas reais: andar, pular o tronco, magia,

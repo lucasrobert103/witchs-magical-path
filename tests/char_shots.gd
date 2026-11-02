@@ -63,5 +63,23 @@ func _initialize() -> void:
 	main.ui.touch.move = Vector2(0.7, 0.7)
 	await wait(1.2)
 	await shot("char_run")
+	# Side view while running, then right after a sudden stop (hair keeps swinging).
+	cam.cinematic = true
+	for i in 3:
+		var fwd: Vector3 = p.facing
+		var side := fwd.cross(Vector3.UP).normalized()
+		cam.cine_pos = p.global_position + side * 3.2 + Vector3(0, 1.2, 0)
+		cam.cine_look = p.global_position + Vector3(0, 1.0, 0)
+		cam.cam.global_position = cam.cine_pos
+		await wait(0.12)
+		await shot("char_run_side_%d" % i)
 	main.ui.touch.move = Vector2.ZERO
+	for i in 3:
+		await wait(0.15)
+		var fwd2: Vector3 = p.facing
+		var side2 := fwd2.cross(Vector3.UP).normalized()
+		cam.cine_pos = p.global_position + side2 * 3.2 + Vector3(0, 1.2, 0)
+		cam.cine_look = p.global_position + Vector3(0, 1.0, 0)
+		cam.cam.global_position = cam.cine_pos
+		await shot("char_stop_%d" % i)
 	quit()
